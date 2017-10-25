@@ -1,0 +1,3 @@
+[submodule "lib/oligo-melting"]
+	path = lib/oligo-melting
+	url = git@github.com:ggirelli/oligo-melting
