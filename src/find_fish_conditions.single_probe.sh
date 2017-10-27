@@ -347,14 +347,14 @@ cond_dir="$outdir/$cond_string"
 mkdir -p "$cond_dir"
 
 # Calculate hybridization of target portions -----------------------------------
-$moddir/oligo-melting/melt_duplex.py "$outdir/targets.fa" -FC \
+$moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
   -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t $dtype \
   --fa-mvalue $fa_mvalue --out-curve "$cond_dir/targets.melt_curve.tsv" \
   --t-curve 30 0.5 > "$cond_dir/targets.melt.tsv"
 if [ ! -e "$cond_dir/targets.melt.tsv" ]; then exit 1; fi
 
 # Plot melting curves
-$moddir/oligo-melting/scripts/plot_melt_curves.R -n "$cond_string : Targets" \
+$moddir/oligo_melting/scripts/plot_melt_curves.R -n "$cond_string : Targets" \
   "$cond_dir/targets.melt_curve.tsv" "$cond_dir/targets.melt_curve.pdf"
 
 # 2nd structure and tm & FA ----------------------------------------------------
@@ -373,12 +373,12 @@ paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
 rm "oligo_melt.tsv.tmp"
 
 # FA correction
-$moddir/oligo-melting/melt_second.py -f $fa1 --t-curve 60 0.5 \
+$moddir/oligo_melting/melt_second.py -f $fa1 --t-curve 60 0.5 \
   --out-curve "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" -C \
   $cond_dir/"second.melt.$t1.tsv" > $cond_dir/"second.melt.$t1.FA"$fa1"p.tsv"
 
 # Plot secondary structure melting curves
-$moddir/oligo-melting/scripts/plot_melt_curves.R \
+$moddir/oligo_melting/scripts/plot_melt_curves.R \
   -n "$cond_string : Secondary structure" \
   "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" \
   "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.pdf"
