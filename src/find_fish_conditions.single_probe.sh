@@ -25,7 +25,9 @@ export LC_ALL=C
 
 # PARAMS =======================================================================
 
-moddir="`dirname ${BASH_SOURCE}`/../modules/"
+moddir="`dirname $(pwd)/${BASH_SOURCE}`/../lib/"
+srcdir="`dirname $(pwd)/${BASH_SOURCE}`/"
+curdir="$(pwd)/"
 
 # Help string
 helps="
@@ -42,6 +44,10 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
   Takes a fasta file in input, where each sequence is an oligo in a probe. This
   script works on a single probe and considers the provided fasta file as such.
 
+ Notes:
+  Monovalent ion (e.g., Na+) concentration must be > 0 M for 2ndary structure
+  calculations using OligoArrayAux.
+
  Mandatory arguments:
   -i fasta        Input fasta file.
   -o outdir       Output folder.
@@ -49,7 +55,12 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
  Optional arguments:
   -h, --help      Show this help page.
   -v, --verbose   Verbose mode.
-  --famode mode   FA correction mode: 'mcconaughy' (classic) or 'wright'.
+  --dtype type    Duplex type: DNA:DNA, RNA:RNA, DNA:RNA, RNA:DNA.
+                  Default: DNA:RNA
+  --famode mode   Formamide correction mode: 'mcconaughy' (classic) or 'wright'.
+                  Default: mcconaughy.
+  --mvalue m      Formamide m-value, either single x value or xL+y format.
+                  Only used with wrighte famode. Default: 0.522.
   --t1 temp       Default temperature for 1st hybridization. Default: 37 degC
   --t1step step   Step for 1st hyb. temp. exploration. Default: 0.5 degC
   --fa1 conc      Default formamide conc. for 1st hyb. Default: 25 %
@@ -82,14 +93,16 @@ probe_conc=0.000001
 uni_conc=0.000001
 pregexp=""
 verbose=false
+dtype="DNA:RNA"
 fa_mode="mcconaughy"
+fa_mvalue=0.522
 struct="20,20,30,20"
 probe_name="probe"
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
 opt_short="hvi:o:u:p:s:n:"
-opt_long="help,verbose,famode:,t1:,t1step:,fa1:,fa1step:,na1:,"
+opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,fa1:,fa1step:,na1:,"
 opt_long=$opt_long"t2:,t2step:,fa2:,fa2step:,na2:"
 
 # Parse options
@@ -103,6 +116,9 @@ while true ; do
     -n) # Probe name
       probe_name="$2"
     shift 2 ;;
+    --dtype) # Duplex type
+      dtype="$2"
+    shift 2 ;;
     --famode) # FA correction mode
       if [ "wright" == "$2" -o "mcconaughy" == "$2" ]; then fa_mode="$2"; else
         msg="$helps\n!!!ERROR! --famode possible values are"
@@ -110,74 +126,77 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
+    --famvalue) # FA m-value
+      fa_mvalue="$2"
+    shift 2 ;;
     --t1) # 1st hybr. temp.
-      if [ $2 -ge 0 ]; then t1="$2"; else
+      if (( $(bc <<< "$2 >= 0") )); then t1="$2"; else
         msg="$helps\n!!!ERROR! --t1 cannot be lower than 0 degC."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --t1step) # 1st hybr. temp. step
-      if [ $2 -gt 0 ]; then t1step=$2; else
+      if (( $(bc <<< "$2 > 0") )); then t1step=$2; else
         msg="$helps\n!!!ERROR! --t1step must be higher than 0 degC."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --fa1) # 1st hybr. formamide conc.
-      if [ $2 -ge 0 ]; then fa1=$2; else
+      if (( $(bc <<< "$2 >= 0") )); then fa1=$2; else
         msg="$helps\n!!!ERROR! --fa1 must be higher than or equal to 0 %."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --fa1step) # 1st hybr. formamide conc. step
-      if [ $2 -gt 0 ]; then fa1step=$2; else
+      if (( $(bc <<< "$2 > 0") )); then fa1step=$2; else
         msg="$helps\n!!!ERROR! --fa1step must be higher than 0 %."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --na1) # 1st hybr. monovalen ion conc.
-      if [ $2 -gt 0 ]; then fa1=$2; else
+      if (( $(bc <<< "$2 > 0") )); then na1=$2; else
         msg="$helps\n!!!ERROR! --na1 must be higher than 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --t2) # 2nd hybr. temp.
-      if [ $2 -ge 0 ]; then t2="$2"; else
+      if (( $(bc <<< "$2 >= 0") )); then t2="$2"; else
         msg="$helps\n!!!ERROR! --t2 cannot be lower than 0 degC."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --t2step) # 2nd hybr. temp. step
-      if [ $2 -gt 0 ]; then t2step=$2; else
+      if (( $(bc <<< "$2 > 0") )); then t2step=$2; else
         msg="$helps\n!!!ERROR! --t2step must be higher than 0 degC."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --fa2) # 2nd hybr. formamide conc.
-      if [ $2 -ge 0 ]; then fa2=$2; else
+      if (( $(bc <<< "$2 >= 0") )); then fa2=$2; else
         msg="$helps\n!!!ERROR! --fa2 must be higher than or equal to 0 %."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --fa2step) # 2nd hybr. formamide conc. step
-      if [ $2 -gt 0 ]; then fa2step=$2; else
+      if (( $(bc <<< "$2 > 0") )); then fa2step=$2; else
         msg="$helps\n!!!ERROR! --fa2step must be higher than 0 %."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     --na2) # 2nd hybr. monovalen ion conc.
-      if [ $2 -gt 0 ]; then fa2=$2; else
+      if (( $(bc <<< "$2 > 0") )); then na2=$2; else
         msg="$helps\n!!!ERROR! --na2 must be higher than 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     -p) # Probe concentration
-      if [ $2 -gt 0 ]; then probe_conc=$2; else
+      if (( $(bc <<< "$2 > 0") )); then probe_conc=$2; else
         msg="$helps\n!!!ERROR! -p must be higher than 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
     -u) # Universal oligo concentration
-      if [ $2 -gt 0 ]; then uni_conc=$2; else
+      if (( $(bc <<< "$2 > 0") )); then uni_conc=$2; else
         msg="$helps\n!!!ERROR! -u must be higher than 0 M."
         echo -e "$msg"; exit 1
       fi
@@ -236,6 +255,10 @@ for len in ${astruct[@]}; do
   frag_start+=($exp_size)
 done
 
+# Make paths absolute
+if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/$fain_path; fi
+if [ "/" != ${outdir:0:1} ]; then outdir=$(pwd)/$outdir/; fi
+
 # Print options
 opt_string="
 #------------ GENERAL ------------#
@@ -275,6 +298,9 @@ echo -e "$opt_string"
 # Create output directory if missing
 mkdir -p "$outdir"
 
+# Copy input fasta to output directory
+cp $fain_path $outdir/input.fa
+
 # Read fasta and print a summary -----------------------------------------------
 fain=$(cat "$fain_path")
 fain_id=$(echo -e "$fain" | grep ">")
@@ -310,36 +336,63 @@ paste <(echo -e "$fain_id") <(echo -e "$targs") | tr '\t' '\n' \
 
 
 
-# Iterate at different conditions ==============================================
-cond_string=$probe_name"_FA"$fa1"p_Na"$na1"M"
+# Iterate at different temperature =============================================
+
+# Log current conditions
+echo -e " · Working on: [FA] $fa1%; [Na] $na1 M; t $t1 degC" 
+
+# Generate condition folder
+cond_string=$probe_name"_FA"$fa1"p_Na"$na1"M_t"$t1"degC"
 cond_dir="$outdir/$cond_string"
 mkdir -p "$cond_dir"
-cd $outdir
 
 # Calculate hybridization of target portions -----------------------------------
-../oligo-melting-temperature/oligo_tm_calc.py "$out_dir/targets.fa" -FC \
-  -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t "sugimotod" \
-  --out-curve "$cond_dir/targets.melt_curve.tsv" > "$cond_dir/targets.melt.tsv"
+$moddir/oligo-melting/melt_duplex.py "$outdir/targets.fa" -FC \
+  -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t $dtype \
+  --fa-mvalue $fa_mvalue --out-curve "$cond_dir/targets.melt_curve.tsv" \
+  --t-curve 30 0.5 > "$cond_dir/targets.melt.tsv"
+if [ ! -e "$cond_dir/targets.melt.tsv" ]; then exit 1; fi
 
 # Plot melting curves
-./melt_curve_plot.R -n "$cond_string" \
+$moddir/oligo-melting/scripts/plot_melt_curves.R -n "$cond_string : Targets" \
   "$cond_dir/targets.melt_curve.tsv" "$cond_dir/targets.melt_curve.pdf"
 
 # 2nd structure and tm & FA ----------------------------------------------------
+cd $cond_dir
+cp $outdir/input.fa $cond_dir/input.fa
 
 # Use OligoArrayAux for 2nd structure calculation
-melt.pl -n DNA -t $t1 -N $na1 -C $probe_conc $fain_path >> "oligo_melt.tsv.tmp"
+melt.pl -n DNA -t $t1 -N $na1 -C $probe_conc input.fa >> "oligo_melt.tsv.tmp"
 
 # Re-format data for easy manipulation
 melt_id="oligo_name\n$(cat "oligo_melt.tsv.tmp" | grep "Calculating")"
 melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
 paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
   sed 's/^Calculating for//' | sed 's/ //g' | \
-  paste - <(echo -e "Seq\n$fain_seq") > "oligo_melt.$t1.tsv"
+  paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$t1.tsv"
 rm "oligo_melt.tsv.tmp"
 
 # FA correction
+$moddir/oligo-melting/melt_second.py -f $fa1 --t-curve 60 0.5 \
+  --out-curve "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" -C \
+  $cond_dir/"second.melt.$t1.tsv" > $cond_dir/"second.melt.$t1.FA"$fa1"p.tsv"
 
+# Plot secondary structure melting curves
+$moddir/oligo-melting/scripts/plot_melt_curves.R \
+  -n "$cond_string : Secondary structure" \
+  "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" \
+  "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.pdf"
+
+# Score function ---------------------------------------------------------------
+
+rm input.fa*
+cd $curdir
+
+# Identify FA concentration for optimal temperature ============================
+
+# Plot per-oligo coupled melting curves ========================================
+
+# !!!Only for optimal condition!!!
 
 # END ==========================================================================
 
