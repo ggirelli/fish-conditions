@@ -228,8 +228,8 @@ def reparse_tsv_list(l, k, delim):
 t = reparse_tsv_list(read_tsv(tin_path), 'oligo_name', ',')
 s = reparse_tsv_list(read_tsv(sin_path), 'oligo_name', ',')
 
-# Save lowest score
-min_score = 1
+# Save scores
+scores = []
 
 # Iterate through the oligos
 for oligo_name in t.keys():
@@ -281,15 +281,14 @@ for oligo_name in t.keys():
         fout.write("%s\t%f\n" % (oligo_name, score))
 
     # Save lowest --------------------------------------------------------------
-    if score <= min_score:
-        min_score = score
+    scores.append(score)
 
 # Close output buffer
 if doSingleOut:
     fout.close()
 
 # Print result
-print(min_score)
+print(min(scores))
 
 # END ==========================================================================
 

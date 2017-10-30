@@ -19,11 +19,15 @@
 
 export LC_ALL=C
 
-# PARAMS =======================================================================
-
 moddir="`dirname $(pwd)/${BASH_SOURCE}`/../lib/"
 srcdir="`dirname $(pwd)/${BASH_SOURCE}`/"
 curdir="$(pwd)/"
+
+# DEPENDENCIES =================================================================
+
+source $moddir/find_fish_conditions.lib.sh
+
+# PARAMS =======================================================================
 
 # Help string
 helps="
@@ -304,6 +308,7 @@ mkdir -p "$outdir"
 cp $fain_path $outdir/input.fa
 
 # Read fasta and print a summary -----------------------------------------------
+
 fain=$(cat "$fain_path")
 fain_id=$(echo -e "$fain" | grep ">")
 fain_seq=$(echo -e "$fain" | grep -v ">")
@@ -325,104 +330,107 @@ if [ $olen -ne $exp_size ]; then
   exit 1
 fi
 
-echo -e " · Found $n_oligo $olen nt oligos."
+echo -e "Found $n_oligo $olen nt oligos."
 
 # Extract only target sequences from the fasta file ----------------------------
+
 targs=$(echo -e "$fain_seq" | \
   awk -v start=${frag_start[2]} -v len=${astruct[2]} \
   '{ print substr($0, start, len) }')
 paste <(echo -e "$fain_id") <(echo -e "$targs") | tr '\t' '\n' \
   > "$outdir/targets.fa"
 
+# 1st HYBRIDIZATION ============================================================
 
+echo -e "
+# 1st HYBRIDIZATION
+# =================
+"
 
+# Iterate at different temperature ---------------------------------------------
 
+fname="$outdir/temp_score.tsv"
+if [ -e $fname ]; then
+  echo -e "t\tscore\n" > $fname
+fi
 
+echo -e "Exploring default temperature"
+run_single_condition1 $t1
+echo -e "$ct\t$cscore" >> $fname
+best_score=$cscore
+best_t=$t1
 
+# Explore lower temperatures
+echo -e "\nExploring lower temperatures"
+ct=$(bc <<< "$t1 - $t1step")
+while
+  run_single_condition1 $ct
+  (( $(bc <<< "$ct >= 20" ) ));
+  #(( $(bc <<< "$cscore >= $best_score") ));
+do
+  best_score=$cscore
+  best_cond=$cond_string
+  best_t=$ct
+  echo -e "$ct\t$cscore" >> $fname
+  ct=$(bc <<< "$ct - $t1step")
+done
+echo -e " · Lower score, stop.\n"
 
+# Explore higher temperatures
+echo -e "Exploring higher temperatures"
+ct=$(bc <<< "$t1 + $t1step")
+while
+  run_single_condition1 $ct
+  (( $(bc <<< "$ct <= 60" ) ));
+  #(( $(bc <<< "$cscore >= $best_score") ));
+do
+  best_score=$cscore
+  best_cond=$cond_string
+  best_t=$ct
+  echo -e "$ct\t$cscore" >> $fname
+  ct=$(bc <<< "$ct + $t1step")
+done
+echo -e " · Lower score, stop.\n"
 
+# Select -----------------------------------------------------------------------
+
+echo -e " · Best condition: $best_cond"
+echo -e " >>> Score: $best_score\n"
+
+# Focus on best condition
+cond_dir="$outdir/$best_cond"
+ct=$best_t
+
+# Identify FA concentration for optimal temperature ----------------------------
+
+optimal_fa1=$(bc <<< " $fa1 + (($ct - $t1) / 0.72)")
+echo -e "For optimal 1st hybridization at $t1 degC, use $optimal_fa1% FA.\n"
+
+# Plot per-oligo coupled melting curves ----------------------------------------
+
+echo -e " · Plotting single-oligo description for optimal condition..."
+$moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t1 \
+  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
+cp "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" \
+  "$outdir/oligo.melt_curve.optimal.pdf"
+
+# Save conditions --------------------------------------------------------------
+
+# 2nd HYBRIDIZATION ============================================================
+
+echo -e "
+# 2nd HYBRIDIZATION
+# =================
+"
 
 # Iterate at different temperature =============================================
 
-ct=$t1
 
-
-
-
-
-
-
-
-
-
-
-# Log current conditions
-echo -e " · Working on: [FA] $fa1%; [Na] $na1 M; t $ct degC" 
-
-# Generate condition folder
-cond_string=$probe_name"_FA"$fa1"p_Na"$na1"M_t"$ct"degC"
-cond_dir="$outdir/$cond_string"
-mkdir -p "$cond_dir"
-
-# Calculate hybridization of target portions -----------------------------------
-$moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
-  -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t $dtype \
-  --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
-  --out-curve "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
-  > "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv"
-if [ ! -e "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" ]; then exit 1; fi
-
-# Plot melting curves
-$moddir/oligo_melting/scripts/plot_melt_curves.R -n "$cond_string : Targets" \
-  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
-  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.pdf"
-
-# 2nd structure and tm & FA ----------------------------------------------------
-cd $cond_dir
-cp $outdir/input.fa $cond_dir/input.fa
-
-# Use OligoArrayAux for 2nd structure calculation
-melt.pl -n DNA -t $ct -N $na1 -C $probe_conc input.fa >> "oligo_melt.tsv.tmp"
-
-# Re-format data for easy manipulation
-melt_id="oligo_name\n$(cat "oligo_melt.tsv.tmp" | grep "Calculating")"
-melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
-paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
-  sed 's/^Calculating for//' | sed 's/ //g' | \
-  paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
-rm "oligo_melt.tsv.tmp"
-
-# FA correction
-$moddir/oligo_melting/melt_second.py -f $fa1 --t-curve 60 0.5 \
-  --out-curve "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" -C \
-  $cond_dir/"second.melt.$ct.tsv" > $cond_dir/"second.melt.$ct.FA"$fa1"p.tsv"
-
-# Plot secondary structure melting curves
-$moddir/oligo_melting/scripts/plot_melt_curves.R \
-  -n "$cond_string : Secondary structure" \
-  "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
-  "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.pdf"
-
-# Score function ---------------------------------------------------------------
-cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na1 \
-  -f $fa1  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
-  --out-single "$cond_dir/oligo.scores.$ct.FA"$fa1"p.tsv" \
-  "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" \
-  "$cond_dir/second.melt.$ct.FA"$fa1"p.tsv")
-
-rm input.fa*
-cd $curdir
-
-# Identify FA concentration for optimal temperature ============================
-
-# Plot per-oligo coupled melting curves ========================================
-# $moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t1 \
-#   "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
-#   "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
-#   "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
-
-# !!!Only for optimal condition!!!
 
 # END ==========================================================================
+
+echo -e "\nDONE"
 
 ################################################################################
