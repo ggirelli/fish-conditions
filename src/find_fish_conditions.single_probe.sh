@@ -12,7 +12,6 @@
 #   color-forward-target-reverse.
 #   
 # TODO:
-#  - Path to oligo_tm_calc.py
 #  - Check if melt.pl is available
 # 
 # ------------------------------------------------------------------------------
@@ -336,54 +335,77 @@ paste <(echo -e "$fain_id") <(echo -e "$targs") | tr '\t' '\n' \
 
 
 
+
+
+
+
 # Iterate at different temperature =============================================
 
+ct=$t1
+
+
+
+
+
+
+
+
+
+
+
 # Log current conditions
-echo -e " · Working on: [FA] $fa1%; [Na] $na1 M; t $t1 degC" 
+echo -e " · Working on: [FA] $fa1%; [Na] $na1 M; t $ct degC" 
 
 # Generate condition folder
-cond_string=$probe_name"_FA"$fa1"p_Na"$na1"M_t"$t1"degC"
+cond_string=$probe_name"_FA"$fa1"p_Na"$na1"M_t"$ct"degC"
 cond_dir="$outdir/$cond_string"
 mkdir -p "$cond_dir"
 
 # Calculate hybridization of target portions -----------------------------------
 $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
   -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t $dtype \
-  --fa-mvalue $fa_mvalue --out-curve "$cond_dir/targets.melt_curve.tsv" \
-  --t-curve 30 0.5 > "$cond_dir/targets.melt.tsv"
-if [ ! -e "$cond_dir/targets.melt.tsv" ]; then exit 1; fi
+  --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
+  --out-curve "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+  > "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv"
+if [ ! -e "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" ]; then exit 1; fi
 
 # Plot melting curves
 $moddir/oligo_melting/scripts/plot_melt_curves.R -n "$cond_string : Targets" \
-  "$cond_dir/targets.melt_curve.tsv" "$cond_dir/targets.melt_curve.pdf"
+  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.pdf"
 
 # 2nd structure and tm & FA ----------------------------------------------------
 cd $cond_dir
 cp $outdir/input.fa $cond_dir/input.fa
 
 # Use OligoArrayAux for 2nd structure calculation
-melt.pl -n DNA -t $t1 -N $na1 -C $probe_conc input.fa >> "oligo_melt.tsv.tmp"
+melt.pl -n DNA -t $ct -N $na1 -C $probe_conc input.fa >> "oligo_melt.tsv.tmp"
 
 # Re-format data for easy manipulation
 melt_id="oligo_name\n$(cat "oligo_melt.tsv.tmp" | grep "Calculating")"
 melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
 paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
   sed 's/^Calculating for//' | sed 's/ //g' | \
-  paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$t1.tsv"
+  paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
 rm "oligo_melt.tsv.tmp"
 
 # FA correction
 $moddir/oligo_melting/melt_second.py -f $fa1 --t-curve 60 0.5 \
-  --out-curve "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" -C \
-  $cond_dir/"second.melt.$t1.tsv" > $cond_dir/"second.melt.$t1.FA"$fa1"p.tsv"
+  --out-curve "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" -C \
+  $cond_dir/"second.melt.$ct.tsv" > $cond_dir/"second.melt.$ct.FA"$fa1"p.tsv"
 
 # Plot secondary structure melting curves
 $moddir/oligo_melting/scripts/plot_melt_curves.R \
   -n "$cond_string : Secondary structure" \
-  "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.tsv" \
-  "$cond_dir/second.melt_curve.$t1.FA"$fa1"p.pdf"
+  "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.pdf"
 
 # Score function ---------------------------------------------------------------
+cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na1 \
+  -f $fa1  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
+  --out-single "$cond_dir/oligo.scores.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" \
+  "$cond_dir/second.melt.$ct.FA"$fa1"p.tsv")
 
 rm input.fa*
 cd $curdir
@@ -391,6 +413,10 @@ cd $curdir
 # Identify FA concentration for optimal temperature ============================
 
 # Plot per-oligo coupled melting curves ========================================
+# $moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t1 \
+#   "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+#   "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
+#   "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
 
 # !!!Only for optimal condition!!!
 

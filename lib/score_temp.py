@@ -19,6 +19,7 @@
 import argparse
 import os
 import re
+import sys
 
 from oligo_melting.lib.meltlib import *
 
@@ -159,17 +160,15 @@ def read_tsv(path):
     # Open buffer to file
     with open(path) as fin:
         # Setup for different first row parsing
-        is_first_row = True
         first_row = []
 
         # Iterate content rows
         for row in fin:
             # Parse first row
-            if is_first_row:
+            if 0 == len(first_row):
                 first_row = row.strip().split(delim)
-                is_first_row = False
                 continue
-
+            
             # Parse other rows
             row = row.strip().split()
 
@@ -207,7 +206,7 @@ def reparse_tsv_list(l, k, delim):
         # All list items must have the aggregation key
         if not k in d.keys():
             msg = "ERROR! Not all the items contain the aggregation key '%s'"
-            print(msg % k)
+            sys.exit(msg % k)
             return({})
 
         # Split on delimiter and keep prefix
@@ -278,7 +277,6 @@ for oligo_name in t.keys():
     score = good
 
     # Output if needed ---------------------------------------------------------
-    print((oligo_name, score))
     if doSingleOut:
         fout.write("%s\t%f\n" % (oligo_name, score))
 
