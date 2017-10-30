@@ -10,9 +10,6 @@
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
 #   for probes composed of oligonucleotides with the following structure:
 #   color-forward-target-reverse.
-#   
-# TODO:
-#  - Check if melt.pl is available
 # 
 # ------------------------------------------------------------------------------
 
@@ -221,6 +218,12 @@ while true ; do
     *) echo "Internal error!" ; exit 1 ;;
   esac
 done
+
+# Check that metl.pl is installed
+if [ ! -x "$(command -v melt.pl)" ]; then
+  echo -e "fish-conditions requires OligoArrayAux melt.pl script to work."
+  exit 1
+fi
 
 # Check mandatory options
 if [ -z "$fain_path" ]; then
