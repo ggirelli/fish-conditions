@@ -311,7 +311,7 @@ for oligo_name in t.keys():
 
     # Output if needed ---------------------------------------------------------
     if doSingleOut:
-        fout.write("%s\t%f\n" % (oligo_name, score))
+        fout.write("%s\t%.9f\n" % (oligo_name, score))
 
     # Save lowest --------------------------------------------------------------
     scores.append(score)
@@ -321,7 +321,7 @@ if doSingleOut:
     fout.close()
 
 # Print result
-print(min(scores))
+print("%.9f" % (min(scores),))
 
 # END ==========================================================================
 
