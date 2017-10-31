@@ -76,6 +76,9 @@ parser.add_argument('--fa-mvalue', type = str, nargs = 1, metavar = 'm',
 parser.add_argument('--out-single', type = str, nargs = 1, metavar = 'outfile',
     help = '''Path to output tsv file to store single oligo scores.''',
     default = [None])
+parser.add_argument('--addit', type = str, nargs = 1, metavar = "addit_tsv",
+    help = '''Path to additional target hybridization
+    characterization tsv file.''', default = [None])
 
 # Parse arguments
 args = parser.parse_args()
@@ -83,6 +86,7 @@ args = parser.parse_args()
 # Assign to in-script variables
 tin_path = args.target_tsv[0]
 sin_path = args.second_tsv[0]
+ain_path = args.addit[0]
 temp = args.t[0]
 dtype = args.d[0]
 
@@ -262,6 +266,28 @@ for oligo_name in t.keys():
     sf = ssMelt_curve(sdh, sds, stemp, fa_conc, 0, 0.1)
     sf = sf[0][1]
 
+    # Additional target --------------------------------------------------------
+
+    additional = False
+    if type(None) != type(ain_path):
+        additional = True
+
+        adh = float(t[oligo_name][0]['dH'])
+        ads = float(t[oligo_name][0]['dS'])
+        aseq = t[oligo_name][0]['Seq'].upper()
+        afgc = (aseq.count('G') + aseq.count('C')) / (len(aseq) + 0.)
+
+        # Reset melting temperature to standard conditions
+        ttemp = temp + 273.15
+        ttemp = duMelt_ion_adj(ttemp, 1, 0, afgc, na_conc)
+        ttemp = duMelt_fa_adj(ttemp, adh, ads, aseq, oligo_conc,
+            0, fa_mode, mvalue, dtype, fa_conc)
+
+        # Calculate fraction
+        af = duMelt_curve(aseq, oligo_conc, na_conc, mg_conc,
+            fa_conc, fa_mode, mvalue, afgc, adh, ads, ttemp, 0, 0.1, dtype)
+        af = af[0][1]
+
     # Calculate score ----------------------------------------------------------
     
     unfold = sf             # Unfolded fraction
@@ -269,9 +295,16 @@ for oligo_name in t.keys():
     dissoc = tf             # Dissociated fraction
     hybrid = 1 - dissoc     # Hybridized fraction
 
+    if additional:             # Additional target
+        adissoc = af           # Dissociated fraction
+        ahybrid = 1 - adissoc  # Hybridized fraction
+
     # Probability of good/bas oligos
     good = unfold * hybrid     # Both unfolded AND hybridized
     bad = (folded + dissoc) - folded * dissoc    # Folded OR dissociated
+
+    if additional:
+        good *= ahybrid
 
     # Score to be maximized
     score = good
