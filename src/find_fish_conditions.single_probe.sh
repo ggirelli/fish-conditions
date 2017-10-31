@@ -10,6 +10,10 @@
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
 #   for probes composed of oligonucleotides with the following structure:
 #   color-forward-target-reverse.
+#   
+# TODO:
+#   Parallelize with GNU parallel running the run_single_condition function,
+#   then extract data with script developed in $SRC 171031.
 # 
 # ------------------------------------------------------------------------------
 
@@ -34,7 +38,7 @@ helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
     [--t1 temp][--t1step step][--fa1 conc][--fa1step step][--na1 conc]
     [--t2 temp][--t2step step][--fa2 conc][--fa2step step][--na2 conc]
-    [--famode mode][-p conc][-u conc][-r pattern][-n pname]
+    [--famode mode][-p conc][-u conc][-r pattern][-n pname][-t nthreads]
     -i fasta -o outdir
 
  Description:
@@ -63,10 +67,18 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
                   Only used with wrighte famode. Default: 0.522.
   --t1 temp       Default temperature for 1st hybridization. Default: 37 degC
   --t1step step   Step for 1st hyb. temp. exploration. Default: 0.5 degC
+  --t1min tmin    Lower boundary for temperature exploration (1st hybrid.).
+                  Default: 32
+  --t1max tmax    Upper boundary for temperature exploration (1st hybrid.).
+                  Default: 42
   --fa1 conc      Default formamide conc. for 1st hyb. Default: 25 %
   --fa1step step  Step for FA conc. exploration. Default: 5 %
   --na1 conc      Monovalent ion conc for 1st hyb. Default: 0.300 M
   --t2 temp       Default temperature for 2nd hybridization. Default: 37 degC
+  --t2min tmin    Lower boundary for temperature exploration (2nd hybrid.).
+                  Default: 32
+  --t2max tmax    Upper boundary for temperature exploration (2nd hybrid.).
+                  Default: 42
   --t2step step   Step for 2nd hyb. temp. exploration. Default: 0.5 degC
   --fa2 conc      Default formamide conc. for 2nd hyb. Default: 25%
   --fa2step step  Step for FA conc. exploration. Default: 5%
@@ -76,16 +88,22 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
   -s struct       Comma separated color,forward,target,reverse length in nt.
                   Default: 20,20,30,20
   -n pname        Probe name. Default: 'probe'
+  -t nthreads     Number of threads for parallelization. GNU parallel is
+                  required for parallelization to occur.
 "
 
 # Default values
 t1=37
 t1step=0.5
+t1min=32
+t1max=42
 fa1=25
 fa1step=5
 na1=0.3
 t2=37
 t2step=0.5
+t2min=32
+t2max=42
 fa2=25
 fa2step=5
 na2=0.3
@@ -98,12 +116,13 @@ fa_mode="mcconaughy"
 fa_mvalue=0.522
 struct="20,20,30,20"
 probe_name="probe"
+nthreads=1
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
-opt_short="hvi:o:u:p:s:n:"
-opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,fa1:,fa1step:,na1:,"
-opt_long=$opt_long"t2:,t2step:,fa2:,fa2step:,na2:"
+opt_short="hvi:o:u:p:s:n:t:"
+opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
+opt_long=$opt_long"fa1step:,na1:,t2:,t2step:,t2min:,t2max:,fa2:,fa2step:,na2:"
 
 # Parse options
 TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
@@ -141,6 +160,18 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
+    --t1min) # 1st hybr. temp. lower boundary of exploration space
+      if (( $(bc <<< "$2 > 0") )); then t1min=$2; else
+        msg="$helps\n!!!ERROR! --t1min must be higher than 0 degC."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --t1max) # 1st hybr. temp. lower boundary of exploration space
+      if (( $(bc <<< "$2 > 0") )); then t1max=$2; else
+        msg="$helps\n!!!ERROR! --t1max must be higher than 0 degC."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
     --fa1) # 1st hybr. formamide conc.
       if (( $(bc <<< "$2 >= 0") )); then fa1=$2; else
         msg="$helps\n!!!ERROR! --fa1 must be higher than or equal to 0 %."
@@ -168,6 +199,18 @@ while true ; do
     --t2step) # 2nd hybr. temp. step
       if (( $(bc <<< "$2 > 0") )); then t2step=$2; else
         msg="$helps\n!!!ERROR! --t2step must be higher than 0 degC."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --t2min) # 2nd hybr. temp. lower boundary of exploration space
+      if (( $(bc <<< "$2 > 0") )); then t2min=$2; else
+        msg="$helps\n!!!ERROR! --t2min must be higher than 0 degC."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --t2max) # 2nd hybr. temp. lower boundary of exploration space
+      if (( $(bc <<< "$2 > 0") )); then t2max=$2; else
+        msg="$helps\n!!!ERROR! --t2max must be higher than 0 degC."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
@@ -214,7 +257,13 @@ while true ; do
     -o) # Output folder
       outdir="$2"
     shift 2 ;;
-    -v| --verbose)
+    -t) # Number of thread sfor parallelization
+      if (( $(bc <<< "0 < $2") )); then nthreads=$2; else
+        msg="$helps\n!!!ERROR! -t must be higher than 0."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2;;
+    -v | --verbose)
       # Verbose mode on
       verbose=true
     shift ;;
@@ -227,6 +276,16 @@ done
 if [ ! -x "$(command -v melt.pl)" ]; then
   echo -e "fish-conditions requires OligoArrayAux melt.pl script to work."
   exit 1
+fi
+if [ 1 -lt $nthreads -a ! -x "$(command -v parallel)" ]; then
+  echo -e "fish-conditions requires GNU parallel to parallelize."
+  exit 1
+else
+  maxthreads=$(parallel --number-of-cores)
+  if [ $nthreads -gt $maxthreads ]; then
+    echo -e "Cannot use more than $maxthreads threads."
+    exit 1
+  fi
 fi
 
 # Check mandatory options
@@ -276,12 +335,14 @@ opt_string="
    FA correction : $fa_mode
        Structure : $struct
    Expected size : $exp_size
+         Threads : $nthreads
 
 #------- 1st HYBRIDIZATION -------#
 
          [probe] : $probe_conc M
      Temperature : $t1 degC
       Temp. step : $t1step degC
+     Temp. range : $t1min - $t1max degC
             [FA] : $fa1 %
        [FA] step : $fa1step %
            [Na+] : $na1 M
@@ -291,6 +352,7 @@ opt_string="
            [uni] : $uni_conc M
      Temperature : $t2 degC
       Temp. step : $t2step degC
+     Temp. range : $t2min - $t2max degC
             [FA] : $fa2 %
        [FA] step : $fa2step %
            [Na+] : $na2 M
@@ -349,48 +411,85 @@ echo -e "
 
 # Iterate at different temperature ---------------------------------------------
 
-fname="$outdir/temp_score.tsv"
+# Prepare output
+fname="$outdir/H1.temp.score.tsv"
 if [ -e $fname ]; then
-  echo -e "t\tscore\n" > $fname
+  echo -e "t\tscore" > $fname
 fi
 
-echo -e "Exploring default temperature"
-run_single_condition1 $t1
-echo -e "$ct\t$cscore" >> $fname
-best_score=$cscore
-best_t=$t1
+if [ 1 == $nthreads ]; then # SINGLE THREAD #
 
-# Explore lower temperatures
-echo -e "\nExploring lower temperatures"
-ct=$(bc <<< "$t1 - $t1step")
-while
-  run_single_condition1 $ct
-  (( $(bc <<< "$ct >= 20" ) ));
-  #(( $(bc <<< "$cscore >= $best_score") ));
-do
-  best_score=$cscore
-  best_cond=$cond_string
-  best_t=$ct
+  # Run default condition
+  echo -e "Checking default temperature"
+  run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+    $fa_mvalue $fa_mode $dtype $t1 "$moddir" "$srcdir" "$outdir/input.fa" 0
   echo -e "$ct\t$cscore" >> $fname
-  ct=$(bc <<< "$ct - $t1step")
-done
-echo -e " · Lower score, stop.\n"
 
-# Explore higher temperatures
-echo -e "Exploring higher temperatures"
-ct=$(bc <<< "$t1 + $t1step")
-while
-  run_single_condition1 $ct
-  (( $(bc <<< "$ct <= 60" ) ));
-  #(( $(bc <<< "$cscore >= $best_score") ));
-do
+  # Default best values
   best_score=$cscore
-  best_cond=$cond_string
-  best_t=$ct
-  echo -e "$ct\t$cscore" >> $fname
-  ct=$(bc <<< "$ct + $t1step")
-done
-echo -e " · Lower score, stop.\n"
+  best_t=$t1
+  best_cond="H1_"$probe_name"_FA"$fa1"p_Na"$na1"M_t"$best_t"degC"
+
+  # Explore lower temperatures
+  echo -e "\nExploring lower temperatures"
+  ct=$(bc <<< "$t1 - $t1step")
+  while
+    run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+      $fa_mvalue $fa_mode $dtype $ct "$moddir" "$srcdir" "$outdir/input.fa" 0
+    (( $(bc <<< "$ct >= $t1min" ) ));
+    #(( $(bc <<< "$cscore >= $best_score") ));
+  do
+    if (( $(bc <<< "$cscore >= $best_score") )); then
+      best_score=$cscore
+      best_cond=$cond_string
+      best_t=$ct
+    fi
+    echo -e "$ct\t$cscore" >> $fname
+    ct=$(bc <<< "$ct - $t1step")
+  done
+  echo -e " · Reached lower boundary, stop.\n"
+
+  # Explore higher temperatures
+  echo -e "Exploring higher temperatures"
+  ct=$(bc <<< "$t1 + $t1step")
+  while
+    run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+      $fa_mvalue $fa_mode $dtype $ct "$moddir" "$srcdir" "$outdir/input.fa" 0
+    (( $(bc <<< "$ct <= $t1max" ) ));
+    #(( $(bc <<< "$cscore >= $best_score") ));
+  do
+    if (( $(bc <<< "$cscore >= $best_score") )); then
+      best_score=$cscore
+      best_cond=$cond_string
+      best_t=$ct
+    fi
+    echo -e "$ct\t$cscore" >> $fname
+    ct=$(bc <<< "$ct + $t1step")
+  done
+  echo -e " · Reached upper boundary, stop.\n"
+
+else # MULTI-THREAD #
+
+  # Explore lower temperatures
+  echo -e "\nExploring temperature space"
+
+  # Run in parallel
+  export -f run_single_condition1
+  pout=$(parallel -j $nthreads run_single_condition1 ::: $outdir ::: \
+    "'$probe_name'" ::: $fa1 ::: $na1 ::: $probe_conc ::: $fa_mvalue ::: \
+    $fa_mode ::: $dtype ::: $(seq $t1min $t1step $t1max) ::: "$moddir" ::: \
+    "$srcdir" ::: "$outdir/input.fa" ::: 1)
+  
+  # Reformat with temperature
+  pout=$(paste <(seq $t1min $t1step $t1max) <(echo -e "$pout"))
+  echo -e "$pout" >> $fname
+
+  # Select best copndition
+  cscore=$(echo -e "$pout" | datamash max 2)
+  best_score=$cscore
+  best_t=$(echo -e "$pout" | grep $best_score | cut -f1)
+  best_cond="H1_"$probe_name"_FA"$fa1"p_Na"$na1"M_t"$best_t"degC"
+fi
 
 # Select -----------------------------------------------------------------------
 
@@ -413,10 +512,19 @@ $moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t1 \
   "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
   "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
   "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
-cp "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" \
-  "$outdir/oligo.melt_curve.optimal.pdf"
+mv "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" \
+  "$outdir/H1.oligo.melt_curve.optimal.pdf"
 
 # Save conditions --------------------------------------------------------------
+
+echo -e "probe\t\tscore\t%FA\tNa\tTh\tprobe_conc" > "$outdir/H1.picked.tsv"
+echo -e "$probe_name\t$best_score\t$optimal_fa1\t$na1\t$best_t\t$probe_conc" \
+  >> "$outdir/H1.picked.tsv"
+
+# Move to subfolder
+rm -r $outdir/H1
+mkdir -p $outdir/H1
+mv $outdir/H1_* $outdir/H1/
 
 # 2nd HYBRIDIZATION ============================================================
 
