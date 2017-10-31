@@ -10,10 +10,6 @@
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
 #   for probes composed of oligonucleotides with the following structure:
 #   color-forward-target-reverse.
-#   
-# TODO:
-#   Parallelize with GNU parallel running the run_single_condition function,
-#   then extract data with script developed in $SRC 171031.
 # 
 # ------------------------------------------------------------------------------
 
@@ -35,7 +31,7 @@ source $moddir/find_fish_conditions.lib.sh
 
 # Help string
 helps="
-usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
+usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
     [--t1 temp][--t1step step][--fa1 conc][--fa1step step][--na1 conc]
     [--t2 temp][--t2step step][--fa2 conc][--fa2step step][--na2 conc]
     [--famode mode][-p conc][-u conc][-r pattern][-n pname][-t nthreads]
@@ -59,6 +55,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose]
  Optional arguments:
   -h, --help      Show this help page.
   -v, --verbose   Verbose mode.
+  -y              Do not ask for settings confirmation.
   --dtype type    Duplex type: DNA:DNA, RNA:RNA, DNA:RNA, RNA:DNA.
                   Default: DNA:RNA
   --famode mode   Formamide correction mode: 'mcconaughy' (classic) or 'wright'.
@@ -113,10 +110,11 @@ fa_mvalue=0.522
 struct="20,20,30,20"
 probe_name="probe"
 nthreads=1
+ask=true
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
-opt_short="hvi:o:u:p:s:n:t:"
+opt_short="hvyi:o:u:p:s:n:t:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
 opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:"
 
@@ -251,6 +249,9 @@ while true ; do
       # Verbose mode on
       verbose=true
     shift ;;
+    -y) # Ask for confirmation
+    ask=false
+    shift ;;
     --) shift ; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -308,79 +309,81 @@ done
 if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/$fain_path; fi
 if [ "/" != ${outdir:0:1} ]; then outdir=$(pwd)/$outdir/; fi
 
-# Print options
-opt_string="
-#------------ GENERAL ------------#
+if $ask; then
+  # Print options
+  opt_string="
+  #------------ GENERAL ------------#
 
-      Probe name : $probe_name
-     Input fasta : $fain_path
-   Output folder : $outdir
-         Verbose : $verbose
-   FA correction : $fa_mode
-       Structure : $struct
-   Expected size : $exp_size
-         Threads : $nthreads
+        Probe name : $probe_name
+       Input fasta : $fain_path
+     Output folder : $outdir
+           Verbose : $verbose
+     FA correction : $fa_mode
+         Structure : $struct
+     Expected size : $exp_size
+           Threads : $nthreads
 
-#------- 1st HYBRIDIZATION -------#
+  #------- 1st HYBRIDIZATION -------#
 
-         [probe] : $probe_conc M
-     Temperature : $t1 degC
-      Temp. step : $t1step degC
-     Temp. range : $t1min - $t1max degC
-            [FA] : $fa1 %
-       [FA] step : $fa1step %
-           [Na+] : $na1 M
+           [probe] : $probe_conc M
+       Temperature : $t1 degC
+        Temp. step : $t1step degC
+       Temp. range : $t1min - $t1max degC
+              [FA] : $fa1 %
+         [FA] step : $fa1step %
+             [Na+] : $na1 M
 
-#------- 2nd HYBRIDIZATION -------#
+  #------- 2nd HYBRIDIZATION -------#
 
-           [uni] : $uni_conc M
-     Temperature : $t2 degC
-      Temp. step : $t2step degC
-     Temp. range : $t2min - $t2max degC
-            [FA] : $fa2 %
-       [FA] step : $fa2step %
-           [Na+] : $na2 M
+             [uni] : $uni_conc M
+       Temperature : $t2 degC
+        Temp. step : $t2step degC
+       Temp. range : $t2min - $t2max degC
+              [FA] : $fa2 %
+         [FA] step : $fa2step %
+             [Na+] : $na2 M
 
-#---------------------------------#
-"
+  #---------------------------------#
+  "
 
-# Ask confirmation
-settings_confirm=`echo -e "$opt_string" | sed 's/^/ /'`
-settings_confirm="
- ##############################################
- #                                            #
- #  PLEASE, DOUBLE CHECK THE SETTINGS BELOW   #
- # (press 'q' to continue when you are ready) #
- #                                            #
- ##############################################
+  # Ask confirmation
+  settings_confirm=`echo -e "$opt_string" | sed 's/^/ /'`
+  settings_confirm="
+   ##############################################
+   #                                            #
+   #  PLEASE, DOUBLE CHECK THE SETTINGS BELOW   #
+   # (press 'q' to continue when you are ready) #
+   #                                            #
+   ##############################################
 
-$settings_confirm"
+  $settings_confirm"
 
-echo -e "$settings_confirm" | less
+  echo -e "$settings_confirm" | less
 
-msg="$msg\nRun the analysis?\nYes (y), Abort (a), Show again (s)"
-clear; echo -e $msg; read -e ans
+  msg="$msg\nRun the analysis?\nYes (y), Abort (a), Show again (s)"
+  clear; echo -e $msg; read -e ans
 
-end=0
-while [[ 0 -eq $end ]]; do
-  if [[ -z $ans ]]; then
-    echo -e $msg
-    read -e ans
-  elif [[ 'a' == $ans ]]; then
-    end=1
-    echo "Aborted."
-    exit 1
-  elif [[ 'y' == $ans ]]; then
-    echo -e "\n"
-    end=1
-  elif [[ 's' == $ans ]]; then
-    echo -e "$settings_confirm" | less
-    clear; echo -e $msg; read -e ans
-  else
-    echo -e $msg
-    read -e ans
-  fi
-done
+  end=0
+  while [[ 0 -eq $end ]]; do
+    if [[ -z $ans ]]; then
+      echo -e $msg
+      read -e ans
+    elif [[ 'a' == $ans ]]; then
+      end=1
+      echo "Aborted."
+      exit 1
+    elif [[ 'y' == $ans ]]; then
+      echo -e "\n"
+      end=1
+    elif [[ 's' == $ans ]]; then
+      echo -e "$settings_confirm" | less
+      clear; echo -e $msg; read -e ans
+    else
+      echo -e $msg
+      read -e ans
+    fi
+  done
+fi
 
 # RUN ==========================================================================
 
