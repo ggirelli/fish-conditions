@@ -330,7 +330,6 @@ if $ask; then
         Temp. step : $t1step degC
        Temp. range : $t1min - $t1max degC
               [FA] : $fa1 %
-         [FA] step : $fa1step %
              [Na+] : $na1 M
 
   #------- 2nd HYBRIDIZATION -------#
@@ -340,7 +339,6 @@ if $ask; then
         Temp. step : $t2step degC
        Temp. range : $t2min - $t2max degC
               [FA] : $fa2 %
-         [FA] step : $fa2step %
              [Na+] : $na2 M
 
   #---------------------------------#
