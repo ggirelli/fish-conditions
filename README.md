@@ -99,21 +99,27 @@ OligoArrayAux (part of UNAFold) is used to study the secondary structure (Markha
 
 As formamide effects on secondary structure are not well described in literature, only the classical correction model (McConaugy) is allowed in the current implementation.
 
-### Usages
+## Usages
 
-#### Single probe evaluation
+Before starting the analysis, the setting are showed and, after pressing "**q**", the user has the option to either review the settings again (**s**), abort the analysis (**a**) or confirm the settings and start the run (**y**).
 
-...
+### Consult help page
 
-#### Multi-probe evaluation
+Run `find_fish_conditions.single_probe.sh -h` or `find_fish_conditions.sh -h` for single- or multi-probe manual, respectively.
 
-...
+### Single probe evaluation
 
-#### Multi-probe harmonization
+Use `find_fish_conditions.single_probe.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
 
-...
+### Multi-probe evaluation
 
-### Score interpretation
+Use `find_fish_conditions.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
+
+### Multi-probe harmonization
+
+Use `find_fish_conditions.sh -i input.fa -o output_dir/ --harmonize` to run the default parameters over a single probe fasta file.
+
+## Score interpretation
 
 The current implementation uses as score the **sum** of the fraction of *good* oligos (unfolded & hybridized) in a probe. As such, dividing the score by the number of oligos provides the average fraction of *good* oligos at given hybridization conditions.
 
@@ -127,6 +133,15 @@ Previous implementation focused on the **minimum** score of a probe, instead of 
 
 ### Setup
 
+1. Install OligoArrayAux if not already available. To check if the software is already available run `command -v melt.pl` or `melt.pl --version`. The first will give no output if the software is not installed, and the second will show the version of the currently installed software, if any. OligoArrayAux is available [here](http://unafold.rna.albany.edu/OligoArrayAux.php).
+2. Install GNU parallel if not already available. To check if the software is already available run `command -v parallel` or `parallel --version`. The first will give no output if the software is not installed, and the second will show the version of the currently installed software, if any. GNU parallel is available [here](https://www.gnu.org/software/parallel/).
+3. Download `fish-conditions` repository and submodules.
+
 ```
-...
+git clone git@github.com:ggirelli/fish-conditions
+cd fish-conditions
+git submodule init
+git submodule update
 ```
+
+4. Test the installation with `./test/test.sh` from within the main code folder (e.g., `fish-conditions`).

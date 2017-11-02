@@ -30,7 +30,7 @@ curdir="$(pwd)/"
 # Help string
 helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
-    [--dtype dtype][--famode mode][--mvalue m]
+    [--dtype dtype][--famode mode][--mvalue m][--version][--noplot]
     [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
     [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
     [-p conc][-u conc][-r pattern][-s struct][-t nthreads][-a|--harmonize]
@@ -55,7 +55,9 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   -h, --help      Show this help page.
   -a, --harmonize Find optimal condition for the provided probes to be used in
                   the same experiment. Thus, only one condition output.
+  --noplot        Do not produce any plot.
   -v, --verbose   Verbose mode.
+  --version       Print version and stop.
   -y              Do not ask for settings confirmation.
   --dtype type    Duplex type: DNA:DNA, RNA:RNA, DNA:RNA, RNA:DNA.
                   Default: DNA:RNA
@@ -115,12 +117,14 @@ struct="20,20,30,20"
 nthreads=1
 ask=true
 harmonize=false
+doplot=true
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
 opt_short="hvyai:o:u:p:s:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
-opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,harmonize"
+opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,harmonize,version,"
+opt_long=$opt_long"noplot"
 
 # Parse options
 TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
@@ -129,6 +133,12 @@ while true ; do
   case "$1" in
     -h| --help) # Print help page
       echo -e "$helps"
+    exit 0 ;;
+    --noplot) # No plot mode
+      doplot=false
+    shift ;;
+    --version) # Print version
+      echo "find_fish_conditions.sh v1.0.0"
     exit 0 ;;
     -a| --harmonize) # Harmonize probe conditions mode
       harmonize=true
@@ -312,6 +322,13 @@ for len in ${astruct[@]}; do
   frag_start+=($exp_size)
 done
 
+# Plotting mode
+if $doplot; then
+  setplot=""
+else
+  setplot="--noplot"
+fi
+
 # Make paths absolute
 if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/$fain_path; fi
 if [ "/" != ${outdir:0:1} ]; then outdir=$(pwd)/$outdir/; fi
@@ -330,6 +347,7 @@ if $ask; then
      Expected size : $exp_size
            Threads : $nthreads
          Harmonize : $harmonize
+              Plot : $doplot
 
   #------- 1st HYBRIDIZATION -------#
 
@@ -403,6 +421,7 @@ cp $fain_path $outdir/input.fa
 plist=($(cat "$outdir/input.fa" | grep ">" | \
   sed -r "$probe_regexp" | sort | uniq))
 echo -e "Found ${#plist[@]} probes."
+if (( $(bc <<< "0 == ${#plist[@]}") )); then exit 0; fi
 
 # Iterate through probes -------------------------------------------------------
 
@@ -417,7 +436,7 @@ if $harmonize; then
     --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
     --fa2 '$fa2' --na2 '$na2' \
     -p '$probe_conc' -u '$uni_conc' -s '$struct' -n 'Harmonized' \
-    -t '$nthreads' -r '$probe_regexp' \
+    -t '$nthreads' -r '$probe_regexp' $setplot \
     -i '$outdir/input.fa' -o '$outdir'
   " > "$outdir/CMD"
 
@@ -429,7 +448,7 @@ if $harmonize; then
     --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
     --fa2 "$fa2" --na2 "$na2" \
     -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "Harmonized" \
-    -t "$nthreads" -r "$probe_regexp" \
+    -t "$nthreads" -r "$probe_regexp" $setplot \
     -i "$outdir/input.fa" -o "$outdir"
 else
   # SINGLE PROBE MODE #
@@ -457,7 +476,7 @@ else
       --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
       --fa2 '$fa2' --na2 '$na2' \
       -p '$probe_conc' -u '$uni_conc' -s '$struct' -n '$probe_name' \
-      -t '$nthreads' \
+      -t '$nthreads' $setplot \
       -i '$probe_dir/input.fa' -o '$probe_dir'
     " > "$probe_dir/CMD"
 
@@ -469,7 +488,7 @@ else
       --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
       --fa2 "$fa2" --na2 "$na2" \
       -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "$probe_name" \
-      -t "$nthreads" \
+      -t "$nthreads" $setplot \
       -i "$probe_dir/input.fa" -o "$probe_dir"
   done
 fi

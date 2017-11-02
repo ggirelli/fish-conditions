@@ -31,6 +31,7 @@ function run_single_condition1() {
     fain_path=${12}
     fain_seq=$(cat "$fain_path" | grep -v ">")
     parallel=${13}
+    doplot=${14}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -52,12 +53,14 @@ function run_single_condition1() {
 
     if [ ! -e "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" ]; then exit 1; fi
 
-    # Plot melting curves
-    $moddir/oligo_melting/scripts/plot_melt_curves.R \
-        -n "$cond_string : Targets" \
-        "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
-        "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.pdf" & pid=$!
-    wait $pid
+    if [ "true" == "$dplot" ]; then
+        # Plot melting curves
+        $moddir/oligo_melting/scripts/plot_melt_curves.R \
+            -n "$cond_string : Targets" \
+            "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+            "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.pdf" & pid=$!
+        wait $pid
+    fi
 
     # 2nd structure and tm & FA ------------------------------------------------
     cd $cond_dir
@@ -83,12 +86,14 @@ function run_single_condition1() {
         > $cond_dir/"second.melt.$ct.FA"$fa1"p.tsv" & pid=$!
     wait $pid
 
-    # Plot secondary structure melting curves
-    $moddir/oligo_melting/scripts/plot_melt_curves.R \
-        -n "$cond_string : Secondary structure" \
-        "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
-        "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.pdf" & pid=$!
-    wait $pid
+    if [ "true" == "$dplot" ]; then
+        # Plot secondary structure melting curves
+        $moddir/oligo_melting/scripts/plot_melt_curves.R \
+            -n "$cond_string : Secondary structure" \
+            "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
+            "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.pdf" & pid=$!
+        wait $pid
+    fi
 
     # Score function -----------------------------------------------------------
     cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na1 \
@@ -124,6 +129,7 @@ function run_single_condition2() {
     fain_seq=$(cat "$fain_path" | grep -v ">")
     parallel=${13}
     t2=${14}
+    doplot=${15}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -145,12 +151,14 @@ function run_single_condition2() {
 
     if [ ! -e "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" ]; then exit 1; fi
 
-    # Plot melting curves
-    $moddir/oligo_melting/scripts/plot_melt_curves.R \
-        -n "$cond_string : Color" \
-        "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
-        "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.pdf" & pid=$!
-    wait $pid
+    if [ "true" == "$doplot" ]; then
+        # Plot melting curves
+        $moddir/oligo_melting/scripts/plot_melt_curves.R \
+            -n "$cond_string : Color" \
+            "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
+            "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.pdf" & pid=$!
+        wait $pid
+    fi
 
     # 2nd structure and tm & FA ------------------------------------------------
     cd $cond_dir
@@ -176,12 +184,14 @@ function run_single_condition2() {
         > $cond_dir/"second.melt.$ct.FA"$fa2"p.tsv" & pid=$!
     wait $pid
 
-    # Plot secondary structure melting curves
-    $moddir/oligo_melting/scripts/plot_melt_curves.R \
-        -n "$cond_string : CF secondary structure" \
-        "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.tsv" \
-        "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.pdf" & pid=$!
-    wait $pid
+    if [ "true" == "$doplot" ]; then
+        # Plot secondary structure melting curves
+        $moddir/oligo_melting/scripts/plot_melt_curves.R \
+            -n "$cond_string : CF secondary structure" \
+            "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.tsv" \
+            "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.pdf" & pid=$!
+        wait $pid
+    fi
 
     # Score function -----------------------------------------------------------
 

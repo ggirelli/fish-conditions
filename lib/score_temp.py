@@ -79,6 +79,16 @@ parser.add_argument('--addit', type = str, nargs = 1, metavar = "addit_tsv",
     help = '''Path to additional target hybridization
     characterization tsv file.''', default = [None])
 
+# Add flags
+parser.add_argument('--version',
+    action = 'store_const', dest = 'version',
+    const = True, default = False,
+    help = 'Print current version and stop.')
+
+if '--version' in sys.argv:
+    print("score_temp.py v1.0.0")
+    sys.exit()
+
 # Parse arguments
 args = parser.parse_args()
 
