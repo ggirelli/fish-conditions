@@ -434,7 +434,7 @@ if $harmonize; then
 else
   # SINGLE PROBE MODE #
 
-  for probe_name in $plist; do
+  for probe_name in ${plist[@]}; do
     echo -e "Working on probe '$probe_name'"
 
     # Create single_probe output directory
