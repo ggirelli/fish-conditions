@@ -24,21 +24,13 @@ git submodule update
 
 Before starting the analysis, the setting are showed and, after pressing "**q**", the user has the option to either review the settings again (**s**), abort the analysis (**a**) or confirm the settings and start the run (**y**).
 
-### Consult help page
+* **Consult help page**. Run `find_fish_conditions.single_probe.sh -h` or `find_fish_conditions.sh -h` for single- or multi-probe manual, respectively.
 
-Run `find_fish_conditions.single_probe.sh -h` or `find_fish_conditions.sh -h` for single- or multi-probe manual, respectively.
+* **Single probe evaluation**. Use `find_fish_conditions.single_probe.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
 
-### Single probe evaluation
+* **Multi-probe evaluation**. Use `find_fish_conditions.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
 
-Use `find_fish_conditions.single_probe.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
-
-### Multi-probe evaluation
-
-Use `find_fish_conditions.sh -i input.fa -o output_dir/` to run the default parameters over a single probe fasta file.
-
-### Multi-probe harmonization
-
-Use `find_fish_conditions.sh -i input.fa -o output_dir/ --harmonize` to run the default parameters over a single probe fasta file.
+* **Multi-probe harmonization**. Use `find_fish_conditions.sh -i input.fa -o output_dir/ --harmonize` to run the default parameters over a single probe fasta file.
 
 ## License
 
