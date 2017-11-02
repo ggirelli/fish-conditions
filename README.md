@@ -44,7 +44,9 @@ Both scripts can explore a range of temperature, with specified increments, arou
   -a, --harmonize Find optimal condition for the provided probes to be used in
                   the same experiment. Thus, only one condition output.
                   Specific for multi-probe script only.
+  --noplot        No-plot mode.
   -v, --verbose   Verbose mode.
+  --version       Print version and stop.
   -y              Do not ask for settings confirmation.
   --dtype type    Duplex type: DNA:DNA, RNA:RNA, DNA:RNA, RNA:DNA.
                   Default: DNA:RNA
