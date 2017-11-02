@@ -3,13 +3,13 @@ fish-conditions
 
 This project contains code to select optimal uniFISH 1st and 2nd hybridization conditions for probes composed of oligonucleotides with the following structure: color sequence (C), forward sequence (F), target sequence (T), and reverse sequence (R), from 5' to 3'. Below, I will refer to the longest flap comprising R and C as L (i.e., L=R+C) and to the whole oligo as O (i.e., O=C+F+T+R).
 
-### FISH overview
+## FISH overview
 
 <img src="https://github.com/ggirelli/fish-conditions/blob/master/images/fish.png" alt="octocat" />
 
 Our FISH protocol comprises a first hybridization round in which and unlabeled oligo is hybridized to its target, and a second hybridization round where a conjugate oligo is hybridized to the color flap.
 
-#### Considerations on the two hybridization steps
+### Considerations on the two hybridization steps
 
 Default hybridization conditions are, in general: 300 mM \[Na+] (corresponding to 2xSSC), 1 uM probe concentration, 37 &deg;C and 25% formamide (FA).
 
@@ -19,15 +19,16 @@ For the **second hybridization** (H2), the script will identify the optimal hybr
 
 In both cases, a formamide concentration is suggested to shift the optimal temperature to the default one, i.e., the user will be free to decide whether to change the incubation temperature or the formamide concentration in the buffers.
 
+
+## Scripts:
+
+- `find_fish_conditions.sh`: main bash script. Runs OligoArrayAux to analyze secondary structures and uses `oligo-melting` for first and second hybridization melting temperature calculations. Can be used to iterate over a multi-probe fasta, or to harmonize the conditions of multiple probes to be used in the same experiment.
+- `find_fish_conditions.single_probe.sh`: bash script for single-probe evaluation.
+
 ### Requirements
 
 - GNU parallel, tested with version 20161222.
 - OligoArrayAux, tested with version 3.8.
-
-### Scripts:
-
-- `find_fish_conditions.sh`: main bash script. Runs OligoArrayAux to analyze secondary structures and uses `oligo-melting` for first and second hybridization melting temperature calculations. Can be used to iterate over a multi-probe fasta, or to harmonize the conditions of multiple probes to be used in the same experiment.
-- `find_fish_conditions.single_probe.sh`: bash script for single-probe evaluation.
 
 ### Parameters:
 
@@ -81,7 +82,7 @@ Both scripts can explore a range of temperature, with specified increments, arou
   -u conc         Universal (labeled) oligo concentration. Default: 1e-6 M
 ```
 
-### Background
+## Background
 
 Tabulated thermodynamic estimates for duplex hybridization, without mismatches, used in the [oligo-melting](http://github.com/ggirelli/oligo-melting/) package are available for: DNA:DNA (Allawi&SantaLucia, Biochemistry(36), 1997), DNA:RNA (or RNA:DNA; Sugimoto N, et al., Biochemistry(34), 1995), and RNA:RNA (Freier SM, et al., PNAS(83), 1986).
 
@@ -98,18 +99,6 @@ OligoArrayAux (part of UNAFold) is used to study the secondary structure (Markha
 
 As formamide effects on secondary structure are not well described in literature, only the classical correction model (McConaugy) is allowed in the current implementation.
 
-### Score interpretation
-
-The current implementation uses as score the **sum** of the fraction of *good* oligos (unfolded & hybridized) in a probe. As such, dividing the score by the number of oligos provides the average fraction of *good* oligos at given hybridization conditions.
-
-For example, a score of 18.56 for a prove of 24 oligonucleotides means that on average only 77.33% of each oligo will be properly hybridized.
-
-```
-18.56 / 24 = 0.7733
-```
-
-Previous implementation focused on the **minimum** score of a probe, instead of the sum. The old approach resulted in lower averages, triggering the implementation of a new approach that could take all oligos into account at the same time.
-
 ### Usages
 
 #### Single probe evaluation
@@ -123,6 +112,18 @@ Previous implementation focused on the **minimum** score of a probe, instead of 
 #### Multi-probe harmonization
 
 ...
+
+### Score interpretation
+
+The current implementation uses as score the **sum** of the fraction of *good* oligos (unfolded & hybridized) in a probe. As such, dividing the score by the number of oligos provides the average fraction of *good* oligos at given hybridization conditions.
+
+For example, a score of 18.56 for a prove of 24 oligonucleotides means that on average only 77.33% of each oligo will be properly hybridized.
+
+```
+18.56 / 24 = 0.7733
+```
+
+Previous implementation focused on the **minimum** score of a probe, instead of the sum. The old approach resulted in lower averages, triggering the implementation of a new approach that could take all oligos into account at the same time.
 
 ### Setup
 
