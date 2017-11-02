@@ -5,7 +5,7 @@ This project contains code to select optimal uniFISH 1st and 2nd hybridization c
 
 ### FISH overview
 
-[[https://github.com/ggirelli/fish-conditions/blob/master/images/fish.png|alt=octocat]]
+<img src="https://github.com/ggirelli/fish-conditions/blob/master/images/fish.png" alt="octocat" />
 
 Our FISH protocol comprises a first hybridization round in which and unlabeled oligo is hybridized to its target, and a second hybridization round where a conjugate oligo is hybridized to the color flap.
 
