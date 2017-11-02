@@ -79,6 +79,8 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
   -p conc         Probe concentration. Default: 1e-6 M
   -r pattern      Regular expression for probe name identification.
+                  Note: the regular expression output should be a substring of
+                        the input fasta header.
                   Default: s/^[>\ ]*([^:]*):.*/\\1/
   -s struct       Comma separated color,forward,target,reverse length in nt.
                   Default: 20,20,30,20
