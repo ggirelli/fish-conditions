@@ -19,14 +19,21 @@
 
 export LC_ALL=C
 
+moddir="`dirname ${BASH_SOURCE}`/../lib/"
+if [ "/" != ${moddir:0:1} ]; then moddir="$(pwd)/$moddir"; fi
+srcdir="`dirname ${BASH_SOURCE}`/"
+if [ "/" != ${srcdir:0:1} ]; then srcdir="$(pwd)/$srcdir"; fi
+curdir="$(pwd)/"
+
 # PARAMS =======================================================================
 
 # Help string
 helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
-    [--t1 temp][--t1step step][--fa1 conc][--fa1step step][--na1 conc]
-    [--t2 temp][--t2step step][--fa2 conc][--fa2step step][--na2 conc]
-    [--famode mode][-p conc][-u conc][-r pattern][-n pname][-t nthreads]
+    [--dtype dtype][--famode mode][--mvalue m]
+    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
+    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
+    [-p conc][-u conc][-r pattern][-s struct][-t nthreads]
     -i fasta -o outdir
 
  Description:
@@ -71,12 +78,13 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --fa2 conc      Default formamide conc. for 2nd hyb. Default: 25%
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
   -p conc         Probe concentration. Default: 1e-6 M
-  -u conc         Universal (labeled) oligo concentration. Default: 1e-6 M
+  -r pattern      Regular expression for probe name identification.
+                  Default: s/^[>\ ]*([^:]*):.*/\\1/
   -s struct       Comma separated color,forward,target,reverse length in nt.
                   Default: 20,20,30,20
-  -n pname        Probe name. Default: 'probe'
   -t nthreads     Number of threads for parallelization. GNU parallel is
                   required for parallelization to occur.
+  -u conc         Universal (labeled) oligo concentration. Default: 1e-6 M
 "
 
 # Default values
@@ -94,19 +102,18 @@ fa2=25
 na2=0.3
 probe_conc=0.000001
 uni_conc=0.000001
-pregexp=""
+probe_regexp="s/^[>\ ]*([^:]*):.*/\\1/"
 verbose=false
 dtype="DNA:RNA"
 fa_mode="mcconaughy"
 fa_mvalue=0.522
 struct="20,20,30,20"
-probe_name="probe"
 nthreads=1
 ask=true
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
-opt_short="hvyi:o:u:p:s:n:t:"
+opt_short="hvyi:o:u:p:s:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
 opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:"
 
@@ -118,9 +125,6 @@ while true ; do
     -h| --help) # Print help page
       echo -e "$helps"
     exit 0 ;;
-    -n) # Probe name
-      probe_name="$2"
-    shift 2 ;;
     --dtype) # Duplex type
       dtype="$2"
     shift 2 ;;
@@ -206,21 +210,6 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
-    -p) # Probe concentration
-      if (( $(bc <<< "$2 > 0") )); then probe_conc=$2; else
-        msg="$helps\n!!!ERROR! -p must be higher than 0 M."
-        echo -e "$msg"; exit 1
-      fi
-    shift 2 ;;
-    -u) # Universal oligo concentration
-      if (( $(bc <<< "$2 > 0") )); then uni_conc=$2; else
-        msg="$helps\n!!!ERROR! -u must be higher than 0 M."
-        echo -e "$msg"; exit 1
-      fi
-    shift 2 ;;
-    -s) # Probe structure
-      struct="$2"
-    shift 2 ;;
     -i) # Input fasta
       if [ -e "$2" ]; then fain_path="$2"; else
         msg="$helps\n!!!ERROR! Invalid -i option."
@@ -231,12 +220,30 @@ while true ; do
     -o) # Output folder
       outdir="$2"
     shift 2 ;;
+    -p) # Probe concentration
+      if (( $(bc <<< "$2 > 0") )); then probe_conc=$2; else
+        msg="$helps\n!!!ERROR! -p must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    -r) # Probe ID pattern
+      probe_regexp="$2"
+    shift 2 ;;
+    -s) # Probe structure
+      struct="$2"
+    shift 2 ;;
     -t) # Number of thread sfor parallelization
       if (( $(bc <<< "0 < $2") )); then nthreads=$2; else
         msg="$helps\n!!!ERROR! -t must be higher than 0."
         echo -e "$msg"; exit 1
       fi
     shift 2;;
+    -u) # Universal oligo concentration
+      if (( $(bc <<< "$2 > 0") )); then uni_conc=$2; else
+        msg="$helps\n!!!ERROR! -u must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
     -v | --verbose)
       # Verbose mode on
       verbose=true
@@ -306,7 +313,7 @@ if $ask; then
   opt_string="
   #------------ GENERAL ------------#
 
-        Probe name : $probe_name
+     Probe pattern : $probe_regexp
        Input fasta : $fain_path
      Output folder : $outdir
            Verbose : $verbose
@@ -322,7 +329,6 @@ if $ask; then
         Temp. step : $t1step degC
        Temp. range : $t1min - $t1max degC
               [FA] : $fa1 %
-         [FA] step : $fa1step %
              [Na+] : $na1 M
 
   #------- 2nd HYBRIDIZATION -------#
@@ -332,7 +338,6 @@ if $ask; then
         Temp. step : $t2step degC
        Temp. range : $t2min - $t2max degC
               [FA] : $fa2 %
-         [FA] step : $fa2step %
              [Na+] : $na2 M
 
   #---------------------------------#
@@ -379,10 +384,56 @@ fi
 
 # RUN ==========================================================================
 
-# Read fasta and identify probes -----------------------------------------------
-# Iterate from default conditions ----------------------------------------------
-# 2nd structure and tm & FA
-# 
+# Create output directory if missing
+mkdir -p "$outdir"
+
+# Copy input fasta to output directory
+cp $fain_path $outdir/input.fa
+
+# Identify probes --------------------------------------------------------------
+plist=$(cat "$outdir/input.fa" | grep ">" | \
+  sed -r "$probe_regexp" | sort | uniq)
+
+# Iterate through probes -------------------------------------------------------
+
+for probe_name in $plist; do
+  echo -e "Working on probe '$probe_name'"
+
+  # Create single_probe output directory
+  probe_dir="$outdir/single_probes/$probe_name"
+  mkdir -p "$probe_dir"
+
+  # Aggregate fasta sequences by header
+  fa_oneline=$(echo "$(cat $outdir/input.fa)" | tr "\n" "\t" | \
+      sed -r 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
+
+  # Output single-probe fasta
+  echo "$fa_oneline" | paste - - | grep "$probe_name" \
+    | tr '\t' '\n' > "$probe_dir/input.fa"
+
+  # Save command line
+  echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
+    --famode '$fa_mode' --mvalue '$fa_mvalue' \
+    --t1 '$t1' --t1step '$t1step' --t1min '$t1min' --t1max '$t1max' \
+    --fa1 '$fa1' --na1 '$na1' \
+    --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
+    --fa2 '$fa2' --na2 '$na2' \
+    -p '$probe_conc' -u '$uni_conc' -s '$struct' -n '$probe_name' \
+    -t '$nthreads' \
+    -i '$probe_dir/input.fa' -o '$probe_dir'
+  " > "$probe_dir/CMD"
+
+  # Run single probe script
+  $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \
+    --famode "$fa_mode" --mvalue "$fa_mvalue" \
+    --t1 "$t1" --t1step "$t1step" --t1min "$t1min" --t1max "$t1max" \
+    --fa1 "$fa1" --na1 "$na1" \
+    --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
+    --fa2 "$fa2" --na2 "$na2" \
+    -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "$probe_name" \
+    -t "$nthreads" \
+    -i "$probe_dir/input.fa" -o "$probe_dir"
+done
 
 # END ==========================================================================
 

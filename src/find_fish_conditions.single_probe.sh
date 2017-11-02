@@ -19,8 +19,10 @@
 
 export LC_ALL=C
 
-moddir="`dirname $(pwd)/${BASH_SOURCE}`/../lib/"
-srcdir="`dirname $(pwd)/${BASH_SOURCE}`/"
+moddir="`dirname ${BASH_SOURCE}`/../lib/"
+if [ "/" != ${moddir:0:1} ]; then moddir="$(pwd)/$moddir"; fi
+srcdir="`dirname ${BASH_SOURCE}`/"
+if [ "/" != ${srcdir:0:1} ]; then srcdir="$(pwd)/$srcdir"; fi
 curdir="$(pwd)/"
 
 # DEPENDENCIES =================================================================
@@ -32,9 +34,10 @@ source $moddir/find_fish_conditions.lib.sh
 # Help string
 helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
-    [--t1 temp][--t1step step][--fa1 conc][--fa1step step][--na1 conc]
-    [--t2 temp][--t2step step][--fa2 conc][--fa2step step][--na2 conc]
-    [--famode mode][-p conc][-u conc][-r pattern][-n pname][-t nthreads]
+    [--dtype dtype][--famode mode][--mvalue m]
+    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
+    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
+    [-p conc][-u conc][-s struct][-n pname][-t nthreads]
     -i fasta -o outdir
 
  Description:
@@ -78,13 +81,13 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --t2step step   Step for 2nd hyb. temp. exploration. Default: 0.1 degC
   --fa2 conc      Default formamide conc. for 2nd hyb. Default: 25%
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
+  -n pname        Probe name. Default: 'probe'
   -p conc         Probe concentration. Default: 1e-6 M
-  -u conc         Universal (labeled) oligo concentration. Default: 1e-6 M
   -s struct       Comma separated color,forward,target,reverse length in nt.
                   Default: 20,20,30,20
-  -n pname        Probe name. Default: 'probe'
   -t nthreads     Number of threads for parallelization. GNU parallel is
                   required for parallelization to occur.
+  -u conc         Universal (labeled) oligo concentration. Default: 1e-6 M
 "
 
 # Default values
@@ -126,9 +129,6 @@ while true ; do
     -h| --help) # Print help page
       echo -e "$helps"
     exit 0 ;;
-    -n) # Probe name
-      probe_name="$2"
-    shift 2 ;;
     --dtype) # Duplex type
       dtype="$2"
     shift 2 ;;
@@ -139,7 +139,7 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
-    --famvalue) # FA m-value
+    --mvalue) # FA m-value
       fa_mvalue="$2"
     shift 2 ;;
     --t1) # 1st hybr. temp.
@@ -214,21 +214,6 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
-    -p) # Probe concentration
-      if (( $(bc <<< "$2 > 0") )); then probe_conc=$2; else
-        msg="$helps\n!!!ERROR! -p must be higher than 0 M."
-        echo -e "$msg"; exit 1
-      fi
-    shift 2 ;;
-    -u) # Universal oligo concentration
-      if (( $(bc <<< "$2 > 0") )); then uni_conc=$2; else
-        msg="$helps\n!!!ERROR! -u must be higher than 0 M."
-        echo -e "$msg"; exit 1
-      fi
-    shift 2 ;;
-    -s) # Probe structure
-      struct="$2"
-    shift 2 ;;
     -i) # Input fasta
       if [ -e "$2" ]; then fain_path="$2"; else
         msg="$helps\n!!!ERROR! Invalid -i option."
@@ -236,8 +221,20 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
+    -n) # Probe name
+      probe_name="$2"
+    shift 2 ;;
     -o) # Output folder
       outdir="$2"
+    shift 2 ;;
+    -p) # Probe concentration
+      if (( $(bc <<< "$2 > 0") )); then probe_conc=$2; else
+        msg="$helps\n!!!ERROR! -p must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    -s) # Probe structure
+      struct="$2"
     shift 2 ;;
     -t) # Number of thread sfor parallelization
       if (( $(bc <<< "0 < $2") )); then nthreads=$2; else
@@ -245,6 +242,12 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2;;
+    -u) # Universal oligo concentration
+      if (( $(bc <<< "$2 > 0") )); then uni_conc=$2; else
+        msg="$helps\n!!!ERROR! -u must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
     -v | --verbose)
       # Verbose mode on
       verbose=true
@@ -253,7 +256,7 @@ while true ; do
     ask=false
     shift ;;
     --) shift ; break ;;
-    *) echo "Internal error!" ; exit 1 ;;
+    *) echo "Internal error! Unrecognized option '$1'." ; exit 1 ;;
   esac
 done
 
@@ -389,7 +392,9 @@ fi
 mkdir -p "$outdir"
 
 # Copy input fasta to output directory
-cp $fain_path $outdir/input.fa
+if [ "$fain_path" != "$outdir/input.fa" ]; then
+  cp $fain_path $outdir/input.fa
+fi
 
 # Read fasta and print a summary -----------------------------------------------
 
