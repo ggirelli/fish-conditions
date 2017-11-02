@@ -123,6 +123,7 @@ function run_single_condition2() {
     fain_path=${12}
     fain_seq=$(cat "$fain_path" | grep -v ">")
     parallel=${13}
+    t2=${14}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -134,7 +135,7 @@ function run_single_condition2() {
     cond_dir="$outdir/$cond_string"
     mkdir -p "$cond_dir"
 
-    # Calculate hybridization of target portions -------------------------------
+    # Calculate hybridization of color portions -------------------------------
     $moddir/oligo_melting/melt_duplex.py "$outdir/color.fa" -FC \
         -o $probe_conc -n $na2 -f $fa2 --fa-mode $fa_mode -t $dtype \
         --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
@@ -183,9 +184,11 @@ function run_single_condition2() {
     wait $pid
 
     # Score function -----------------------------------------------------------
+
     cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na2 \
         -f $fa2  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
         --out-single "$cond_dir/oligo.scores.$ct.FA"$fa2"p.tsv" \
+        --addit "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" \
         "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" \
         "$cond_dir/second.melt.$ct.FA"$fa2"p.tsv")
 

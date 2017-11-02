@@ -25,7 +25,6 @@ from oligo_melting.lib.meltlib import *
 
 # PARAMETERS ===================================================================
 
-
 # Add script description
 parser = argparse.ArgumentParser(description = '''
 Calculates score of a temperature condition.
@@ -232,6 +231,11 @@ def reparse_tsv_list(l, k, delim):
 t = reparse_tsv_list(read_tsv(tin_path), 'oligo_name', ',')
 s = reparse_tsv_list(read_tsv(sin_path), 'oligo_name', ',')
 
+additional = False
+if type(None) != type(ain_path):
+    additional = True
+    a = reparse_tsv_list(read_tsv(ain_path), 'oligo_name', ',')
+
 # Save scores
 scores = []
 
@@ -268,25 +272,34 @@ for oligo_name in t.keys():
 
     # Additional target --------------------------------------------------------
 
-    additional = False
-    if type(None) != type(ain_path):
-        additional = True
+    if additional:
+        # Focus on oligos with current flap
+        acur = dict([(k, a[k]) for k in a.keys() if oligo_name in k])
+        
+        # Dissociate fraction vector
+        af = []
 
-        adh = float(t[oligo_name][0]['dH'])
-        ads = float(t[oligo_name][0]['dS'])
-        aseq = t[oligo_name][0]['Seq'].upper()
-        afgc = (aseq.count('G') + aseq.count('C')) / (len(aseq) + 0.)
+        # Calculate fraction for each target
+        for (k, v) in acur.items():
+            # Retrieve target characteristics
+            adh = float(v[0]['dH'])
+            ads = float(v[0]['dS'])
+            aseq = v[0]['Seq'].upper()
+            afgc = (aseq.count('G') + aseq.count('C')) / (len(aseq) + 0.)
 
-        # Reset melting temperature to standard conditions
-        ttemp = temp + 273.15
-        ttemp = duMelt_ion_adj(ttemp, 1, 0, afgc, na_conc)
-        ttemp = duMelt_fa_adj(ttemp, adh, ads, aseq, oligo_conc,
-            0, fa_mode, mvalue, dtype, fa_conc)
+            # Reset melting temperature to standard conditions
+            ttemp = temp + 273.15
+            ttemp = duMelt_ion_adj(ttemp, 1, 0, afgc, na_conc)
+            ttemp = duMelt_fa_adj(ttemp, adh, ads, aseq, oligo_conc,
+                0, fa_mode, mvalue, dtype, fa_conc)
 
-        # Calculate fraction
-        af = duMelt_curve(aseq, oligo_conc, na_conc, mg_conc,
-            fa_conc, fa_mode, mvalue, afgc, adh, ads, ttemp, 0, 0.1, dtype)
-        af = af[0][1]
+            # Calculate fraction
+            afcur = duMelt_curve(aseq, oligo_conc, na_conc, mg_conc,
+                fa_conc, fa_mode, mvalue, afgc, adh, ads, ttemp, 0, 0.1, dtype)
+            af.append(afcur[0][1])
+
+        # Calculate average dissociated target fractions
+        af = sum(af) / float(len(af))
 
     # Calculate score ----------------------------------------------------------
     
@@ -321,7 +334,7 @@ if doSingleOut:
     fout.close()
 
 # Print result
-print("%.9f" % (min(scores),))
+print("%.9f" % (sum(scores),))
 
 # END ==========================================================================
 

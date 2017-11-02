@@ -33,7 +33,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
     [--dtype dtype][--famode mode][--mvalue m]
     [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
     [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
-    [-p conc][-u conc][-r pattern][-s struct][-t nthreads]
+    [-p conc][-u conc][-r pattern][-s struct][-t nthreads][-a|--harmonize]
     -i fasta -o outdir
 
  Description:
@@ -53,6 +53,8 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
 
  Optional arguments:
   -h, --help      Show this help page.
+  -a, --harmonize Find optimal condition for the provided probes to be used in
+                  the same experiment. Thus, only one condition output.
   -v, --verbose   Verbose mode.
   -y              Do not ask for settings confirmation.
   --dtype type    Duplex type: DNA:DNA, RNA:RNA, DNA:RNA, RNA:DNA.
@@ -112,12 +114,13 @@ fa_mvalue=0.522
 struct="20,20,30,20"
 nthreads=1
 ask=true
+harmonize=false
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
-opt_short="hvyi:o:u:p:s:t:r:"
+opt_short="hvyai:o:u:p:s:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
-opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:"
+opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,harmonize"
 
 # Parse options
 TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
@@ -127,6 +130,9 @@ while true ; do
     -h| --help) # Print help page
       echo -e "$helps"
     exit 0 ;;
+    -a| --harmonize) # Harmonize probe conditions mode
+      harmonize=true
+    shift ;;
     --dtype) # Duplex type
       dtype="$2"
     shift 2 ;;
@@ -323,6 +329,7 @@ if $ask; then
          Structure : $struct
      Expected size : $exp_size
            Threads : $nthreads
+         Harmonize : $harmonize
 
   #------- 1st HYBRIDIZATION -------#
 
@@ -393,26 +400,15 @@ mkdir -p "$outdir"
 cp $fain_path $outdir/input.fa
 
 # Identify probes --------------------------------------------------------------
-plist=$(cat "$outdir/input.fa" | grep ">" | \
-  sed -r "$probe_regexp" | sort | uniq)
+plist=($(cat "$outdir/input.fa" | grep ">" | \
+  sed -r "$probe_regexp" | sort | uniq))
+echo -e "Found ${#plist[@]} probes."
 
 # Iterate through probes -------------------------------------------------------
 
-for probe_name in $plist; do
-  echo -e "Working on probe '$probe_name'"
-
-  # Create single_probe output directory
-  probe_dir="$outdir/single_probes/$probe_name"
-  mkdir -p "$probe_dir"
-
-  # Aggregate fasta sequences by header
-  fa_oneline=$(echo "$(cat $outdir/input.fa)" | tr "\n" "\t" | \
-      sed -r 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
-
-  # Output single-probe fasta
-  echo "$fa_oneline" | paste - - | grep "$probe_name" \
-    | tr '\t' '\n' > "$probe_dir/input.fa"
-
+if $harmonize; then
+  # HARMONIZE PROBES MODE #
+  
   # Save command line
   echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
     --famode '$fa_mode' --mvalue '$fa_mvalue' \
@@ -420,10 +416,10 @@ for probe_name in $plist; do
     --fa1 '$fa1' --na1 '$na1' \
     --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
     --fa2 '$fa2' --na2 '$na2' \
-    -p '$probe_conc' -u '$uni_conc' -s '$struct' -n '$probe_name' \
-    -t '$nthreads' \
-    -i '$probe_dir/input.fa' -o '$probe_dir'
-  " > "$probe_dir/CMD"
+    -p '$probe_conc' -u '$uni_conc' -s '$struct' -n 'Harmonized' \
+    -t '$nthreads' -r '$probe_regexp' \
+    -i '$outdir/input.fa' -o '$outdir'
+  " > "$outdir/CMD"
 
   # Run single probe script
   $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \
@@ -432,10 +428,51 @@ for probe_name in $plist; do
     --fa1 "$fa1" --na1 "$na1" \
     --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
     --fa2 "$fa2" --na2 "$na2" \
-    -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "$probe_name" \
-    -t "$nthreads" \
-    -i "$probe_dir/input.fa" -o "$probe_dir"
-done
+    -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "Harmonized" \
+    -t "$nthreads" -r "$probe_regexp" \
+    -i "$outdir/input.fa" -o "$outdir"
+else
+  # SINGLE PROBE MODE #
+
+  for probe_name in $plist; do
+    echo -e "Working on probe '$probe_name'"
+
+    # Create single_probe output directory
+    probe_dir="$outdir/single_probes/$probe_name"
+    mkdir -p "$probe_dir"
+
+    # Aggregate fasta sequences by header
+    fa_oneline=$(echo "$(cat $outdir/input.fa)" | tr "\n" "\t" | \
+        sed -r 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
+
+    # Output single-probe fasta
+    echo "$fa_oneline" | paste - - | grep "$probe_name" \
+      | tr '\t' '\n' > "$probe_dir/input.fa"
+
+    # Save command line
+    echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
+      --famode '$fa_mode' --mvalue '$fa_mvalue' \
+      --t1 '$t1' --t1step '$t1step' --t1min '$t1min' --t1max '$t1max' \
+      --fa1 '$fa1' --na1 '$na1' \
+      --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
+      --fa2 '$fa2' --na2 '$na2' \
+      -p '$probe_conc' -u '$uni_conc' -s '$struct' -n '$probe_name' \
+      -t '$nthreads' \
+      -i '$probe_dir/input.fa' -o '$probe_dir'
+    " > "$probe_dir/CMD"
+
+    # Run single probe script
+    $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \
+      --famode "$fa_mode" --mvalue "$fa_mvalue" \
+      --t1 "$t1" --t1step "$t1step" --t1min "$t1min" --t1max "$t1max" \
+      --fa1 "$fa1" --na1 "$na1" \
+      --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
+      --fa2 "$fa2" --na2 "$na2" \
+      -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "$probe_name" \
+      -t "$nthreads" \
+      -i "$probe_dir/input.fa" -o "$probe_dir"
+  done
+fi
 
 # END ==========================================================================
 

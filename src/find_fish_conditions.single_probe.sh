@@ -37,7 +37,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
     [--dtype dtype][--famode mode][--mvalue m]
     [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
     [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
-    [-p conc][-u conc][-s struct][-n pname][-t nthreads]
+    [-p conc][-u conc][-r pattern][-s struct][-n pname][-t nthreads]
     -i fasta -o outdir
 
  Description:
@@ -83,6 +83,10 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
   -n pname        Probe name. Default: 'probe'
   -p conc         Probe concentration. Default: 1e-6 M
+  -r pattern      Regular expression for probe name identification.
+                  Note: the regular expression output should be a substring of
+                        the input fasta header.
+                  Default: s/^[>\ ]*([^:]*):.*/\\1/
   -s struct       Comma separated color,forward,target,reverse length in nt.
                   Default: 20,20,30,20
   -t nthreads     Number of threads for parallelization. GNU parallel is
@@ -105,7 +109,7 @@ fa2=25
 na2=0.3
 probe_conc=0.000001
 uni_conc=0.000001
-pregexp=""
+probe_regexp="s/^[>\ ]*([^:]*):.*/\\1/"
 verbose=false
 dtype="DNA:RNA"
 fa_mode="mcconaughy"
@@ -117,7 +121,7 @@ ask=true
 
 # Set option parsing strings
 opt_name="find_fish_conditions.sh"
-opt_short="hvyi:o:u:p:s:n:t:"
+opt_short="hvyi:o:u:p:s:n:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
 opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:"
 
@@ -232,6 +236,9 @@ while true ; do
         msg="$helps\n!!!ERROR! -p must be higher than 0 M."
         echo -e "$msg"; exit 1
       fi
+    shift 2 ;;
+    -r) # Probe ID pattern
+      probe_regexp="$2"
     shift 2 ;;
     -s) # Probe structure
       struct="$2"
@@ -535,8 +542,8 @@ echo -e "For optimal 1st hybridization at $t1 degC, use $optimal_fa1% FA.\n"
 # Plot per-oligo coupled melting curves ----------------------------------------
 
 echo -e " · Plotting single-oligo description for optimal condition..."
-$moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t1 \
-  "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
+$moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name \
+  -t $best_t "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
   "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
   "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
 mv "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" \
@@ -563,23 +570,41 @@ if [ -d "$outdir/H2/" ]; then rm -r "$outdir/H2/"; fi
 mkdir -p "$outdir/H2/"
 
 # Extract color sequences
-col_seq=$(echo -e "$fain_seq" | awk \
+col_seq=($(echo -e "$fain_seq" | awk \
   -v s=${frag_start[0]} -v e=${frag_start[1]} \
-  '{ print substr($1, s, e) }' | sort | uniq)
-echo -e "> FLAP\n$col_seq" > "$outdir/color.fa"
+  '{ print substr($1, s, e) }' | sort | uniq))
+col_id=()
+for s in ${col_seq[@]}; do col_id+=($(cat "$outdir/input.fa" | paste - - | \
+  grep "$s" | cut -f1 | sed -r "$probe_regexp" | sort | uniq)); done
+paste <(echo ${col_id[@]} | tr ' ' '\n') <(echo ${col_seq[@]} | tr ' ' '\n') | \
+  sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.fa"
 
 # Extract color-forward sequences
 colfor_seq=$(echo -e "$fain_seq" | awk \
   -v s=${frag_start[0]} -v e=${frag_start[2]} \
   '{ print substr($1, s, e) }' | sort | uniq)
-echo -e "> FLAP\n$colfor_seq" > "$outdir/color.forward.fa"
+for s in ${colfor_seq[@]}; do colfor_id+=($(cat "$outdir/input.fa" | \
+  paste - - | grep "$s" | cut -f1 | sed -r "$probe_regexp" | sort | uniq));
+done
+paste <(echo ${colfor_id[@]} | tr ' ' '\n') <(echo ${colfor_seq[@]} | \
+  tr ' ' '\n') | sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.forward.fa"
 
-# Extract oligo
+# Calculate hybridization of target portions -----------------------------------
 $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
-    -o $probe_conc -n $na2 -f $fa2 --fa-mode $fa_mode -t "DNA:DNA" \
+    -o $probe_conc -n $na2 -f $fa2 --fa-mode $fa_mode -t $dtype \
     --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
     --out-curve "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.tsv" \
-    > "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv"
+    > "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" & pid=$!
+wait $pid
+
+if [ ! -e "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" ]; then exit 1; fi
+
+# Plot melting curves
+$moddir/oligo_melting/scripts/plot_melt_curves.R \
+    -n "Harmonized targets" \
+    "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.tsv" \
+    "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.pdf" & pid=$!
+wait $pid
 
 # Iterate at different temperature =============================================
 
@@ -595,7 +620,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "Checking default temperature"
   run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
     $fa_mvalue $fa_mode "DNA:DNA" $t2 "$moddir" "$srcdir" \
-    "$outdir/color.forward.fa" 0
+    "$outdir/color.forward.fa" 0 $t2
   echo -e "$ct\t$cscore" >> $fname
 
   # Default best values
@@ -608,7 +633,8 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   ct=$(bc <<< "$t2 - $t2step")
   while
     run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
-      $fa_mvalue $fa_mode "DNA:DNA" $ct "$moddir" "$srcdir" "$outdir/color.fa" 0
+      $fa_mvalue $fa_mode "DNA:DNA" $ct \
+      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2
     (( $(bc <<< "$ct >= $t2min" ) ));
     #(( $(bc <<< "$cscore >= $best_score") ));
   do
@@ -627,7 +653,8 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   ct=$(bc <<< "$t2 + $t2step")
   while
     run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
-      $fa_mvalue $fa_mode "DNA:DNA" $ct "$moddir" "$srcdir" "$outdir/color.fa" 0
+      $fa_mvalue $fa_mode "DNA:DNA" $ct \
+      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2
     (( $(bc <<< "$ct <= $t2max" ) ));
     #(( $(bc <<< "$cscore >= $best_score") ));
   do
@@ -651,7 +678,7 @@ else # MULTI-THREAD #
   pout=$(parallel -kj $nthreads run_single_condition2 ::: $outdir ::: \
     "'$probe_name'" ::: $fa2 ::: $na2 ::: $probe_conc ::: $fa_mvalue ::: \
     $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" ::: \
-    "$srcdir" ::: "$outdir/color.fa" ::: 1)
+    "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2)
   
   # Reformat with temperature
   pout=$(paste <(seq $t2min $t2step $t2max) <(echo -e "$pout"))
@@ -682,8 +709,8 @@ echo -e "For optimal 2nd hybridization at $t2 degC, use $optimal_fa2% FA.\n"
 # Plot per-oligo coupled melting curves ----------------------------------------
 
 echo -e " · Plotting single-oligo description for optimal condition..."
-$moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name -t $t2 \
-  "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
+$moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name \
+  -t $best_t "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
   "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.tsv" \
   --addit-tsv "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.tsv" \
   "$cond_dir/h2.melt_curve.$ct.FA"$fa2"p.pdf"
@@ -697,8 +724,6 @@ echo -e "$probe_name\t$best_score\t$optimal_fa2\t$na2\t$t2\t$probe_conc" \
   >> "$outdir/H2.picked.tsv"
 
 # Move to subfolder
-if [ -d "$outdir/H2" ]; then rm -r $outdir/H2; fi
-mkdir -p $outdir/H2
 mv $outdir/H2_* $outdir/H2/
 
 # END ==========================================================================
