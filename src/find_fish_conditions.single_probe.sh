@@ -588,9 +588,11 @@ fi
 
 # Save conditions --------------------------------------------------------------
 
-echo -e "probe\t\tscore\t%FA\tNa\tTh\tprobe_conc" > "$outdir/H1.picked.tsv"
-echo -e "$probe_name\t$best_score\t$optimal_fa1\t$na1\t$t1\t$probe_conc" \
-  >> "$outdir/H1.picked.tsv"
+echo -e "probe\tscore\th%FA\tTh\to%FA\tTo\tNa\tprobe_conc" \
+  > "$outdir/H1.picked.tsv"
+line="$probe_name\t$best_score\t$optimal_fa1\t$t1\t$fa1"
+line=$line"\t$best_t\t$na1\t$probe_conc"
+echo -e "$line" >> "$outdir/H1.picked.tsv"
 
 # Move to subfolder
 if [ -d "$outdir/H1" ]; then rm -r $outdir/H1; fi
@@ -761,9 +763,12 @@ fi
 
 # Save conditions --------------------------------------------------------------
 
-echo -e "probe\t\tscore\t%FA\tNa\tTh\tprobe_conc" > "$outdir/H2.picked.tsv"
-echo -e "$probe_name\t$best_score\t$optimal_fa2\t$na2\t$t2\t$probe_conc" \
-  >> "$outdir/H2.picked.tsv"
+echo -e "probe\tscore\th%FA\tTh\to%FA\tTo\tNa\tprobe_conc" \
+  > "$outdir/H2.picked.tsv"
+line="$probe_name\t$best_score\t$optimal_fa2\t$t2\t$fa2"
+line=$line"\t$best_t\t$na2\t$probe_conc"
+echo -e "$line" >> "$outdir/H2.picked.tsv"
+
 
 # Move to subfolder
 mv $outdir/H2_* $outdir/H2/

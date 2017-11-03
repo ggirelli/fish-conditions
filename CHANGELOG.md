@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for Magnesium concentration effect.
 - Normalized score.
 - Updated oligo-melting with automatic R package installation.
+- Added more info to picked.tsv table.
 
 ## [1.0.0]
 
