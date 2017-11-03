@@ -580,7 +580,8 @@ if $doplot; then
   $moddir/oligo_melting/scripts/plot_melt_curves_coupled.R -n $probe_name \
     -t $best_t "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
     "$cond_dir/second.melt_curve.$ct.FA"$fa1"p.tsv" \
-    "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf"
+    "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" & pid=$!
+  wait $pid
   mv "$cond_dir/oligo.melt_curve.$ct.FA"$fa1"p.pdf" \
     "$outdir/H1.oligo.melt_curve.optimal.pdf"
 fi
@@ -752,7 +753,8 @@ if $doplot; then
     -t $best_t "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
     "$cond_dir/second.melt_curve.$ct.FA"$fa2"p.tsv" \
     --addit-tsv "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.tsv" \
-    "$cond_dir/h2.melt_curve.$ct.FA"$fa2"p.pdf"
+    "$cond_dir/h2.melt_curve.$ct.FA"$fa2"p.pdf" & pid=$!
+  wait $pid
   mv "$cond_dir/h2.melt_curve.$ct.FA"$fa2"p.pdf" \
     "$outdir/H2.h2.melt_curve.optimal.pdf"
 fi
