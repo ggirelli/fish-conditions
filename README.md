@@ -20,6 +20,17 @@ git submodule update
 
 4. Test the installation with `./test/test.sh` from within the main code folder (e.g., `fish-conditions`).
 
+#### For Mac users
+
+If not yet available, please install `gnu-getopt` as follows:
+
+```
+brew install gnu-getopt
+brew link --force gnu-getopt
+```
+
+To install homebrew, check it out [here](https://brew.sh/).
+
 ## Usage
 
 Before starting the analysis, the setting are showed and, after pressing "**q**", the user has the option to either review the settings again (**s**), abort the analysis (**a**) or confirm the settings and start the run (**y**).
