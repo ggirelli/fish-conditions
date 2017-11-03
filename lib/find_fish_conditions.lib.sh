@@ -21,17 +21,18 @@ function run_single_condition1() {
     probe_name=$(echo "${2}" | sed -E "s/'//g")
     fa1=${3}
     na1=${4}
-    probe_conc=${5}
-    fa_mvalue=${6}
-    fa_mode=${7}
-    dtype=${8}
-    ct=${9}
-    moddir=${10}
-    srcdir=${11}
-    fain_path=${12}
+    mg1=${5}
+    probe_conc=${6}
+    fa_mvalue=${7}
+    fa_mode=${8}
+    dtype=${9}
+    ct=${10}
+    moddir=${11}
+    srcdir=${12}
+    fain_path=${13}
     fain_seq=$(cat "$fain_path" | grep -v ">")
-    parallel=${13}
-    doplot=${14}
+    parallel=${14}
+    doplot=${15}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -122,18 +123,19 @@ function run_single_condition2() {
     probe_name=$(echo "${2}" | sed -E "s/'//g")
     fa2=${3}
     na2=${4}
-    probe_conc=${5}
-    fa_mvalue=${6}
-    fa_mode=${7}
-    dtype=${8}
-    ct=${9}
-    moddir=${10}
-    srcdir=${11}
-    fain_path=${12}
+    mg2=${5}
+    probe_conc=${6}
+    fa_mvalue=${7}
+    fa_mode=${8}
+    dtype=${9}
+    ct=${10}
+    moddir=${11}
+    srcdir=${12}
+    fain_path=${13}
     fain_seq=$(cat "$fain_path" | grep -v ">")
-    parallel=${13}
-    t2=${14}
-    doplot=${15}
+    parallel=${14}
+    t2=${15}
+    doplot=${16}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then

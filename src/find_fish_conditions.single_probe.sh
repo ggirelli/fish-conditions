@@ -485,7 +485,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
 
   # Run default condition
   echo -e "Checking default temperature"
-  run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+  run_single_condition1 $outdir $probe_name $fa1 $na1 $mg1 $probe_conc \
     $fa_mvalue $fa_mode $dtype $t1 \
     "$moddir" "$srcdir" "$outdir/input.fa" 0 $doplot
   echo -e "$ct\t$cscore\t$nscore" >> $fname
@@ -499,7 +499,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "\nExploring lower temperatures"
   ct=$(bc <<< "$t1 - $t1step")
   while
-    run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+    run_single_condition1 $outdir $probe_name $fa1 $na1 $mg1 $probe_conc \
       $fa_mvalue $fa_mode $dtype $ct \
       "$moddir" "$srcdir" "$outdir/input.fa" 0 $doplot
     (( $(bc <<< "$ct >= $t1min" ) ));
@@ -519,7 +519,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "Exploring higher temperatures"
   ct=$(bc <<< "$t1 + $t1step")
   while
-    run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
+    run_single_condition1 $outdir $probe_name $fa1 $na1 $mg1 $probe_conc \
       $fa_mvalue $fa_mode $dtype $ct \
       "$moddir" "$srcdir" "$outdir/input.fa" 0 $doplot
     (( $(bc <<< "$ct <= $t1max" ) ));
@@ -543,7 +543,7 @@ else # MULTI-THREAD #
   # Run in parallel
   export -f run_single_condition1
   pout=$(parallel -kj $nthreads run_single_condition1 ::: $outdir ::: \
-    "'$probe_name'" ::: $fa1 ::: $na1 ::: $probe_conc ::: $fa_mvalue ::: \
+    "'$probe_name'" ::: $fa1 ::: $na1 ::: $mg1 ::: $probe_conc ::: $fa_mvalue ::: \
     $fa_mode ::: $dtype ::: $(seq $t1min $t1step $t1max) ::: "$moddir" ::: \
     "$srcdir" ::: "$outdir/input.fa" ::: 1 ::: $doplot)
   
@@ -656,7 +656,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
 
   # Run default condition
   echo -e "Checking default temperature"
-  run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
+  run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
     $fa_mvalue $fa_mode "DNA:DNA" $t2 "$moddir" "$srcdir" \
     "$outdir/color.forward.fa" 0 $t2 $doplot
   echo -e "$ct\t$cscore\t$nscore" >> $fname
@@ -670,7 +670,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "\nExploring lower temperatures"
   ct=$(bc <<< "$t2 - $t2step")
   while
-    run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
+    run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
       $fa_mvalue $fa_mode "DNA:DNA" $ct \
       "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot
     (( $(bc <<< "$ct >= $t2min" ) ));
@@ -690,7 +690,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "Exploring higher temperatures"
   ct=$(bc <<< "$t2 + $t2step")
   while
-    run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
+    run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
       $fa_mvalue $fa_mode "DNA:DNA" $ct \
       "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot
     (( $(bc <<< "$ct <= $t2max" ) ));
@@ -714,9 +714,9 @@ else # MULTI-THREAD #
   # Run in parallel
   export -f run_single_condition2
   pout=$(parallel -kj $nthreads run_single_condition2 ::: $outdir ::: \
-    "'$probe_name'" ::: $fa2 ::: $na2 ::: $probe_conc ::: $fa_mvalue ::: \
-    $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" ::: \
-    "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot)
+    "'$probe_name'" ::: $fa2 ::: $na2 ::: $mg2 ::: $probe_conc ::: $fa_mvalue \
+    ::: $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" \
+    ::: "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot)
   
   # Reformat with temperature
   pout=$(paste <(seq $t2min $t2step $t2max) <(echo -e "$pout"))
