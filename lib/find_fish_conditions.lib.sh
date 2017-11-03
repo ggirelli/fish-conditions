@@ -18,7 +18,7 @@ function run_single_condition1() {
 
     # First hybridization analysis
     outdir=${1}
-    probe_name=$(echo "${2}" | sed -r "s/'//g")
+    probe_name=$(echo "${2}" | sed -E "s/'//g")
     fa1=${3}
     na1=${4}
     probe_conc=${5}
@@ -119,7 +119,7 @@ function run_single_condition2() {
 
     # First hybridization analysis
     outdir=${1}
-    probe_name=$(echo "${2}" | sed -r "s/'//g")
+    probe_name=$(echo "${2}" | sed -E "s/'//g")
     fa2=${3}
     na2=${4}
     probe_conc=${5}

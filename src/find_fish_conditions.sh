@@ -439,7 +439,7 @@ cp $fain_path $outdir/input.fa
 
 # Identify probes --------------------------------------------------------------
 plist=($(cat "$outdir/input.fa" | grep ">" | \
-  sed -r "$probe_regexp" | sort | uniq))
+  sed -E "$probe_regexp" | sort | uniq))
 echo -e "Found ${#plist[@]} probes."
 if (( $(bc <<< "0 == ${#plist[@]}") )); then exit 0; fi
 
@@ -482,7 +482,7 @@ else
 
     # Aggregate fasta sequences by header
     fa_oneline=$(echo "$(cat $outdir/input.fa)" | tr "\n" "\t" | \
-        sed -r 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
+        sed -E 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
 
     # Output single-probe fasta
     echo "$fa_oneline" | paste - - | grep "$probe_name" \

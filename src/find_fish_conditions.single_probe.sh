@@ -611,7 +611,7 @@ col_seq=($(echo -e "$fain_seq" | awk \
   '{ print substr($1, s, e) }' | sort | uniq))
 col_id=()
 for s in ${col_seq[@]}; do col_id+=($(cat "$outdir/input.fa" | paste - - | \
-  grep "$s" | cut -f1 | sed -r "$probe_regexp" | sort | uniq)); done
+  grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq)); done
 paste <(echo ${col_id[@]} | tr ' ' '\n') <(echo ${col_seq[@]} | tr ' ' '\n') | \
   sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.fa"
 
@@ -620,7 +620,7 @@ colfor_seq=$(echo -e "$fain_seq" | awk \
   -v s=${frag_start[0]} -v e=${frag_start[2]} \
   '{ print substr($1, s, e) }' | sort | uniq)
 for s in ${colfor_seq[@]}; do colfor_id+=($(cat "$outdir/input.fa" | \
-  paste - - | grep "$s" | cut -f1 | sed -r "$probe_regexp" | sort | uniq));
+  paste - - | grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq));
 done
 paste <(echo ${colfor_id[@]} | tr ' ' '\n') <(echo ${colfor_seq[@]} | \
   tr ' ' '\n') | sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.forward.fa"
