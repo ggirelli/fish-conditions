@@ -12,7 +12,7 @@ This project contains code to select optimal uniFISH 1st and 2nd hybridization c
 3. Download `fish-conditions` repository and submodules.
 
 ```
-git clone git@github.com:ggirelli/fish-conditions
+git clone https://github.com/ggirelli/fish-conditions
 cd fish-conditions
 git submodule init
 git submodule update
