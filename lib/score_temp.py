@@ -5,7 +5,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.0.0
+# Version: 1.1.0
 # Date: 20171027
 # Project: FISH probe condition picking
 # Description: Provide score for temperature condition.
@@ -86,7 +86,7 @@ parser.add_argument('--version',
     help = 'Print current version and stop.')
 
 if '--version' in sys.argv:
-    print("score_temp.py v1.0.0")
+    print("score_temp.py v1.1.0")
     sys.exit()
 
 # Parse arguments

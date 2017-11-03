@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.0.0
+# Version: 1.1.0
 # Date: 20171016
 # Project: FISH probe condition picking
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
@@ -31,8 +31,10 @@ curdir="$(pwd)/"
 helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
     [--dtype dtype][--famode mode][--mvalue m][--version][--noplot]
-    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
-    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
+    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa]
+    [--na1 na][--mg1 mg]
+    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa]
+    [--na2 na][--mg2 mg]
     [-p conc][-u conc][-r pattern][-s struct][-t nthreads][-a|--harmonize]
     -i fasta -o outdir
 
@@ -73,6 +75,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
                   Default: 42
   --fa1 conc      Default formamide conc. for 1st hyb. Default: 25 %
   --na1 conc      Monovalent ion conc for 1st hyb. Default: 0.300 M
+  --mg1 conc      Divalent ion conc for 1st hyb. Default: 0 M
   --t2 temp       Default temperature for 2nd hybridization. Default: 37 degC
   --t2min tmin    Lower boundary for temperature exploration (2nd hybrid.).
                   Default: 32
@@ -81,6 +84,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --t2step step   Step for 2nd hyb. temp. exploration. Default: 0.1 degC
   --fa2 conc      Default formamide conc. for 2nd hyb. Default: 25%
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
+  --mg2 conc      Divalent ion conc for 1st hyb. Default: 0 M
   -p conc         Probe concentration. Default: 1e-6 M
   -r pattern      Regular expression for probe name identification.
                   Note: the regular expression output should be a substring of
@@ -100,12 +104,14 @@ t1min=32
 t1max=42
 fa1=25
 na1=0.3
+mg1=0
 t2=37
 t2step=0.1
 t2min=32
 t2max=42
 fa2=25
 na2=0.3
+mg2=0
 probe_conc=0.000001
 uni_conc=0.000001
 probe_regexp="s/^[>\ ]*([^:]*):.*/\\1/"
@@ -123,8 +129,8 @@ doplot=true
 opt_name="find_fish_conditions.sh"
 opt_short="hvyai:o:u:p:s:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
-opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,harmonize,version,"
-opt_long=$opt_long"noplot"
+opt_long=$opt_long"na1:,mg1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,mg2:,"
+opt_long=$opt_long"harmonize,version,noplot"
 
 # Parse options
 TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
@@ -138,7 +144,7 @@ while true ; do
       doplot=false
     shift ;;
     --version) # Print version
-      echo "find_fish_conditions.sh v1.0.0"
+      echo "find_fish_conditions.sh v1.1.0"
     exit 0 ;;
     -a| --harmonize) # Harmonize probe conditions mode
       harmonize=true
@@ -186,9 +192,15 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
-    --na1) # 1st hybr. monovalen ion conc.
+    --na1) # 1st hybr. monovalent ion conc.
       if (( $(bc <<< "$2 > 0") )); then na1=$2; else
         msg="$helps\n!!!ERROR! --na1 must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --mg1) # 1st hybr. divalent ion conc.
+      if (( $(bc <<< "$2 >= 0") )); then mg1=$2; else
+        msg="$helps\n!!!ERROR! --mg1 must be higher than or equal to 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
@@ -225,6 +237,12 @@ while true ; do
     --na2) # 2nd hybr. monovalen ion conc.
       if (( $(bc <<< "$2 > 0") )); then na2=$2; else
         msg="$helps\n!!!ERROR! --na2 must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --mg2) # 2nd hybr. divalent ion conc.
+      if (( $(bc <<< "$2 >= 0") )); then mg2=$2; else
+        msg="$helps\n!!!ERROR! --mg2 must be higher than or equal to 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
@@ -357,6 +375,7 @@ if $ask; then
        Temp. range : $t1min - $t1max degC
               [FA] : $fa1 %
              [Na+] : $na1 M
+            [Mg2+] : $mg1 M
 
   #------- 2nd HYBRIDIZATION -------#
 
@@ -366,6 +385,7 @@ if $ask; then
        Temp. range : $t2min - $t2max degC
               [FA] : $fa2 %
              [Na+] : $na2 M
+            [Mg2+] : $mg2 M
 
   #---------------------------------#
   "
@@ -432,9 +452,9 @@ if $harmonize; then
   echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
     --famode '$fa_mode' --mvalue '$fa_mvalue' \
     --t1 '$t1' --t1step '$t1step' --t1min '$t1min' --t1max '$t1max' \
-    --fa1 '$fa1' --na1 '$na1' \
+    --fa1 '$fa1' --na1 '$na1' --mg1 '$mg1' \
     --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
-    --fa2 '$fa2' --na2 '$na2' \
+    --fa2 '$fa2' --na2 '$na2' --mg2 '$mg2' \
     -p '$probe_conc' -u '$uni_conc' -s '$struct' -n 'Harmonized' \
     -t '$nthreads' -r '$probe_regexp' $setplot \
     -i '$outdir/input.fa' -o '$outdir'
@@ -444,9 +464,9 @@ if $harmonize; then
   $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \
     --famode "$fa_mode" --mvalue "$fa_mvalue" \
     --t1 "$t1" --t1step "$t1step" --t1min "$t1min" --t1max "$t1max" \
-    --fa1 "$fa1" --na1 "$na1" \
+    --fa1 "$fa1" --na1 "$na1" --mg1 "$mg1" \
     --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
-    --fa2 "$fa2" --na2 "$na2" \
+    --fa2 "$fa2" --na2 "$na2" --mg2 "$mg2" \
     -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "Harmonized" \
     -t "$nthreads" -r "$probe_regexp" $setplot \
     -i "$outdir/input.fa" -o "$outdir"
@@ -472,9 +492,9 @@ else
     echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
       --famode '$fa_mode' --mvalue '$fa_mvalue' \
       --t1 '$t1' --t1step '$t1step' --t1min '$t1min' --t1max '$t1max' \
-      --fa1 '$fa1' --na1 '$na1' \
+      --fa1 '$fa1' --na1 '$na1' --mg1 '$mg1' \
       --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
-      --fa2 '$fa2' --na2 '$na2' \
+      --fa2 '$fa2' --na2 '$na2' --mg2 '$mg2' \
       -p '$probe_conc' -u '$uni_conc' -s '$struct' -n '$probe_name' \
       -t '$nthreads' $setplot \
       -i '$probe_dir/input.fa' -o '$probe_dir'
@@ -484,9 +504,9 @@ else
     $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \
       --famode "$fa_mode" --mvalue "$fa_mvalue" \
       --t1 "$t1" --t1step "$t1step" --t1min "$t1min" --t1max "$t1max" \
-      --fa1 "$fa1" --na1 "$na1" \
+      --fa1 "$fa1" --na1 "$na1" --mg1 "$mg1" \
       --t2 "$t2" --t2step "$t2step" --t2min "$t2min" --t2max "$t2max" \
-      --fa2 "$fa2" --na2 "$na2" \
+      --fa2 "$fa2" --na2 "$na2" --mg2 "$mg2" \
       -p "$probe_conc" -u "$uni_conc" -s "$struct" -n "$probe_name" \
       -t "$nthreads" $setplot \
       -i "$probe_dir/input.fa" -o "$probe_dir"

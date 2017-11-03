@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.0.0
+# Version: 1.1.0
 # Date: 20171016
 # Project: FISH probe condition picking
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
@@ -35,8 +35,10 @@ source $moddir/find_fish_conditions.lib.sh
 helps="
 usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
     [--dtype dtype][--famode mode][--mvalue m][--version][--noplot]
-    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax][--fa1 fa][--na1 na]
-    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax][--fa2 fa][--na2 na]
+    [--t1 temp][--t1step step][--t1min tmin][--t1max tmax]
+    [--fa1 fa][--na1 na][--mg1 mg]
+    [--t2 temp][--t2step step][--t2min tmin][--t2max tmax]
+    [--fa2 fa][--na2 na][--mg2 mg]
     [-p conc][-u conc][-r pattern][-s struct][-n pname][-t nthreads]
     -i fasta -o outdir
 
@@ -75,6 +77,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
                   Default: 42
   --fa1 conc      Default formamide conc. for 1st hyb. Default: 25 %
   --na1 conc      Monovalent ion conc for 1st hyb. Default: 0.300 M
+  --mg1 conc      Divalent ion conc for 1st hyb. Default: 0 M
   --t2 temp       Default temperature for 2nd hybridization. Default: 37 degC
   --t2min tmin    Lower boundary for temperature exploration (2nd hybrid.).
                   Default: 32
@@ -83,6 +86,7 @@ usage: ./find_fish_conditions.single_probe.sh [-h|--help][-v|--verbose][-y]
   --t2step step   Step for 2nd hyb. temp. exploration. Default: 0.1 degC
   --fa2 conc      Default formamide conc. for 2nd hyb. Default: 25%
   --na2 conc      Monovalent ion conc for 2nd hyb. Default: 0.300 M
+  --mg2 conc      Divalent ion conc for 1st hyb. Default: 0 M
   -n pname        Probe name. Default: 'probe'
   -p conc         Probe concentration. Default: 1e-6 M
   -r pattern      Regular expression for probe name identification.
@@ -103,12 +107,14 @@ t1min=32
 t1max=42
 fa1=25
 na1=0.3
+mg1=0
 t2=37
 t2step=0.1
 t2min=32
 t2max=42
 fa2=25
 na2=0.3
+mg2=0
 probe_conc=0.000001
 uni_conc=0.000001
 probe_regexp="s/^[>\ ]*([^:]*):.*/\\1/"
@@ -126,7 +132,8 @@ doplot=true
 opt_name="find_fish_conditions.sh"
 opt_short="hvyi:o:u:p:s:n:t:r:"
 opt_long="help,verbose,dtype:,famode:,mvalue:,t1:,t1step:,t1min:,t1max:,fa1:,"
-opt_long=$opt_long"na1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,version,noplot"
+opt_long=$opt_long"na1:,mg1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,mg2:,"
+opt_long=$opt_long"version,noplot"
 
 # Parse options
 TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
@@ -140,7 +147,7 @@ while true ; do
       doplot=false
     shift ;;
     --version) # Print version and stop
-      echo "find_fish_conditions.single_probe.sh v1.0.0"
+      echo "find_fish_conditions.single_probe.sh v1.1.0"
     exit 0 ;;
     --dtype) # Duplex type
       dtype="$2"
@@ -191,6 +198,12 @@ while true ; do
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
+    --mg1) # 1st hybr. divalent ion conc.
+      if (( $(bc <<< "$2 >= 0") )); then mg1=$2; else
+        msg="$helps\n!!!ERROR! --mg1 must be higher than or equal to 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
     --t2) # 2nd hybr. temp.
       if (( $(bc <<< "$2 >= 0") )); then t2="$2"; else
         msg="$helps\n!!!ERROR! --t2 cannot be lower than 0 degC."
@@ -224,6 +237,12 @@ while true ; do
     --na2) # 2nd hybr. monovalen ion conc.
       if (( $(bc <<< "$2 > 0") )); then na2=$2; else
         msg="$helps\n!!!ERROR! --na2 must be higher than 0 M."
+        echo -e "$msg"; exit 1
+      fi
+    shift 2 ;;
+    --mg2) # 2nd hybr. divalent ion conc.
+      if (( $(bc <<< "$2 >= 0") )); then mg2=$2; else
+        msg="$helps\n!!!ERROR! --mg2 must be higher than or equal to 0 M."
         echo -e "$msg"; exit 1
       fi
     shift 2 ;;
@@ -351,6 +370,7 @@ if $ask; then
        Temp. range : $t1min - $t1max degC
               [FA] : $fa1 %
              [Na+] : $na1 M
+            [Mg2+] : $mg1 M
 
   #------- 2nd HYBRIDIZATION -------#
 
@@ -360,6 +380,7 @@ if $ask; then
        Temp. range : $t2min - $t2max degC
               [FA] : $fa2 %
              [Na+] : $na2 M
+            [Mg2+] : $mg2 M
 
   #---------------------------------#
   "
@@ -457,7 +478,7 @@ echo -e "
 # Prepare output
 fname="$outdir/H1.temp.score.tsv"
 if [ -e $fname ]; then
-  echo -e "t\tscore" > $fname
+  echo -e "t\tscore\tnorm" > $fname
 fi
 
 if [ 1 == $nthreads ]; then # SINGLE THREAD #
@@ -467,7 +488,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   run_single_condition1 $outdir $probe_name $fa1 $na1 $probe_conc \
     $fa_mvalue $fa_mode $dtype $t1 \
     "$moddir" "$srcdir" "$outdir/input.fa" 0 $doplot
-  echo -e "$ct\t$cscore" >> $fname
+  echo -e "$ct\t$cscore\t$nscore" >> $fname
 
   # Default best values
   best_score=$cscore
@@ -489,7 +510,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
       best_cond=$cond_string
       best_t=$ct
     fi
-    echo -e "$ct\t$cscore" >> $fname
+    echo -e "$ct\t$cscore\t$nscore" >> $fname
     ct=$(bc <<< "$ct - $t1step")
   done
   echo -e " · Reached lower boundary, stop.\n"
@@ -509,7 +530,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
       best_cond=$cond_string
       best_t=$ct
     fi
-    echo -e "$ct\t$cscore" >> $fname
+    echo -e "$ct\t$cscore\t$nscore" >> $fname
     ct=$(bc <<< "$ct + $t1step")
   done
   echo -e " · Reached upper boundary, stop.\n"
@@ -606,7 +627,7 @@ paste <(echo ${colfor_id[@]} | tr ' ' '\n') <(echo ${colfor_seq[@]} | \
 
 # Calculate hybridization of target portions -----------------------------------
 $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
-    -o $probe_conc -n $na2 -f $fa2 --fa-mode $fa_mode -t $dtype \
+    -o $probe_conc -n $na2 -m $mg2 -f $fa2 --fa-mode $fa_mode -t $dtype \
     --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
     --out-curve "$outdir/H2/targets.melt_curve.$t2.FA"$fa2"p.tsv" \
     > "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" & pid=$!
@@ -628,7 +649,7 @@ fi
 # Prepare output
 fname="$outdir/H2.temp.score.tsv"
 if [ -e $fname ]; then
-  echo -e "t\tscore" > $fname
+  echo -e "t\tscore\tnorm" > $fname
 fi
 
 if [ 1 == $nthreads ]; then # SINGLE THREAD #
@@ -638,7 +659,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   run_single_condition2 $outdir $probe_name $fa2 $na2 $uni_conc \
     $fa_mvalue $fa_mode "DNA:DNA" $t2 "$moddir" "$srcdir" \
     "$outdir/color.forward.fa" 0 $t2 $doplot
-  echo -e "$ct\t$cscore" >> $fname
+  echo -e "$ct\t$cscore\t$nscore" >> $fname
 
   # Default best values
   best_score=$cscore
@@ -660,7 +681,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
       best_cond=$cond_string
       best_t=$ct
     fi
-    echo -e "$ct\t$cscore" >> $fname
+    echo -e "$ct\t$cscore\t$nscore" >> $fname
     ct=$(bc <<< "$ct - $t2step")
   done
   echo -e " · Reached lower boundary, stop.\n"
@@ -680,7 +701,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
       best_cond=$cond_string
       best_t=$ct
     fi
-    echo -e "$ct\t$cscore" >> $fname
+    echo -e "$ct\t$cscore\t$nscore" >> $fname
     ct=$(bc <<< "$ct + $t2step")
   done
   echo -e " · Reached upper boundary, stop.\n"

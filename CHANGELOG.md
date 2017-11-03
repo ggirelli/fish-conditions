@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [unreleased]
 - ...
 
+## [1.1.0]
+### Added
+- Support for Mac in the documentation.
+- Support for Magnesium concentration effect.
+- Normalized score.
+- Updated oligo-melting with automatic R package installation.
+
 ## [1.0.0]
 
 * [unreleased] https://github.com/ggirelli/fish-conditions
+* [1.1.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.0.0
 * [1.0.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.0.0

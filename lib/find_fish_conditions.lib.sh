@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.0.0
+# Version: 1.1.0
 # Date: 20171030
 # Description: functions for FISH hybridization condition picking
 # 
@@ -45,7 +45,7 @@ function run_single_condition1() {
 
     # Calculate hybridization of target portions -------------------------------
     $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
-        -o $probe_conc -n $na1 -f $fa1 --fa-mode $fa_mode -t $dtype \
+        -o $probe_conc -n $na1 -m $mg1 -f $fa1 --fa-mode $fa_mode -t $dtype \
         --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
         --out-curve "$cond_dir/targets.melt_curve.$ct.FA"$fa1"p.tsv" \
         > "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" & pid=$!
@@ -67,7 +67,7 @@ function run_single_condition1() {
     cp $outdir/input.fa $cond_dir/input.fa
 
     # Use OligoArrayAux for 2nd structure calculation
-    melt.pl -n DNA -t $ct -N $na1 -C $probe_conc input.fa \
+    melt.pl -n DNA -t $ct -N $na1 -M $mg1 -C $probe_conc input.fa \
         >> "oligo_melt.tsv.tmp" & pid=$!
     wait $pid
 
@@ -102,10 +102,14 @@ function run_single_condition1() {
         "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" \
         "$cond_dir/second.melt.$ct.FA"$fa1"p.tsv")
 
+    noligo=$(echo -e "$fain_seq" | wc -l)
+    nscore=$(bc <<< "scale=2; $cscore / $noligo")
+
     if [ 0 -eq $parallel ]; then
         echo -e " >>> Score: $cscore"
+        echo -e " >>> Normalized score: $nscore"
     else
-        echo $cscore
+        echo -e "$cscore\t$nscore"
     fi
 
     rm input.fa*
@@ -143,7 +147,7 @@ function run_single_condition2() {
 
     # Calculate hybridization of color portions -------------------------------
     $moddir/oligo_melting/melt_duplex.py "$outdir/color.fa" -FC \
-        -o $probe_conc -n $na2 -f $fa2 --fa-mode $fa_mode -t $dtype \
+        -o $probe_conc -n $na2 -m $mg2 -f $fa2 --fa-mode $fa_mode -t $dtype \
         --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
         --out-curve "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
         > "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" & pid=$!
@@ -165,7 +169,7 @@ function run_single_condition2() {
     cp $outdir/color.forward.fa $cond_dir/color.forward.fa
 
     # Use OligoArrayAux for 2nd structure calculation
-    melt.pl -n DNA -t $ct -N $na2 -C $probe_conc color.forward.fa \
+    melt.pl -n DNA -t $ct -N $na2 -M $mg2 -C $probe_conc color.forward.fa \
         >> "colfor_melt.tsv.tmp" & pid=$!
     wait $pid
 
@@ -194,7 +198,6 @@ function run_single_condition2() {
     fi
 
     # Score function -----------------------------------------------------------
-
     cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na2 \
         -f $fa2  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
         --out-single "$cond_dir/oligo.scores.$ct.FA"$fa2"p.tsv" \
@@ -202,10 +205,14 @@ function run_single_condition2() {
         "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" \
         "$cond_dir/second.melt.$ct.FA"$fa2"p.tsv")
 
+    noligo=$(echo -e "$fain_seq" | wc -l)
+    nscore=$(bc <<< "scale=2; $cscore / $noligo")
+
     if [ 0 -eq $parallel ]; then
         echo -e " >>> Score: $cscore"
+        echo -e " >>> Normalized score: $nscore"
     else
-        echo $cscore
+        echo -e "$cscore\t$nscore"
     fi
 
     rm color.forward.fa*
