@@ -542,7 +542,8 @@ else # MULTI-THREAD #
 
   # Run in parallel
   export -f run_single_condition1
-  pout=$(parallel -kj $nthreads run_single_condition1 ::: $outdir ::: \
+  pout=$(parallel -kj $nthreads --env=run_single_condition1 \
+    run_single_condition1 ::: $outdir ::: \
     "'$probe_name'" ::: $fa1 ::: $na1 ::: $mg1 ::: $probe_conc ::: $fa_mvalue ::: \
     $fa_mode ::: $dtype ::: $(seq $t1min $t1step $t1max) ::: "$moddir" ::: \
     "$srcdir" ::: "$outdir/input.fa" ::: 1 ::: $doplot)
@@ -716,7 +717,8 @@ else # MULTI-THREAD #
 
   # Run in parallel
   export -f run_single_condition2
-  pout=$(parallel -kj $nthreads run_single_condition2 ::: $outdir ::: \
+  pout=$(parallel -kj $nthreads --env=run_single_condition2 \
+    run_single_condition2 ::: $outdir ::: \
     "'$probe_name'" ::: $fa2 ::: $na2 ::: $mg2 ::: $probe_conc ::: $fa_mvalue \
     ::: $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" \
     ::: "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot)
