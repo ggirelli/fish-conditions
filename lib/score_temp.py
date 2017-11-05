@@ -5,7 +5,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.1.0
+# Version: 1.1.1
 # Date: 20171027
 # Project: FISH probe condition picking
 # Description: Provide score for temperature condition.
@@ -24,6 +24,8 @@ import sys
 from oligo_melting.lib.meltlib import *
 
 # PARAMETERS ===================================================================
+
+version = "1.1.1"
 
 # Add script description
 parser = argparse.ArgumentParser(description = '''
@@ -86,7 +88,7 @@ parser.add_argument('--version',
     help = 'Print current version and stop.')
 
 if '--version' in sys.argv:
-    print("score_temp.py v1.1.0")
+    print("score_temp.py v%s" % version)
     sys.exit()
 
 # Parse arguments

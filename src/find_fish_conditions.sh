@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.1.0
+# Version: 1.1.1
 # Date: 20171016
 # Project: FISH probe condition picking
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
@@ -18,6 +18,7 @@
 # ENV VAR ======================================================================
 
 export LC_ALL=C
+version="1.1.1"
 
 moddir="`dirname ${BASH_SOURCE}`/../lib/"
 if [ "/" != ${moddir:0:1} ]; then moddir="$(pwd)/$moddir"; fi
@@ -144,7 +145,7 @@ while true ; do
       doplot=false
     shift ;;
     --version) # Print version
-      echo "find_fish_conditions.sh v1.1.0"
+      echo "find_fish_conditions.sh v$version"
     exit 0 ;;
     -a| --harmonize) # Harmonize probe conditions mode
       harmonize=true

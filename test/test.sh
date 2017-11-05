@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.0.0
+# Version: 1.1.1
 # Date: 20171102
 # Project: FISH optimal conditions
 # Description: test the code installation.
@@ -22,7 +22,7 @@ export LC_ALL=C
 basedir="`dirname ${BASH_SOURCE}`"
 if [ "/" != ${basedir:0:1} ]; then basedir="$(pwd)/$basedir"; fi
 
-	version="v1.1.0"
+	version="v1.1.1"
 
 # RUN ==========================================================================
 

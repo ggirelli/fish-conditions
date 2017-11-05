@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [unreleased]
 - ...
 
+## [1.1.1]
+### Fixed
+- Parallelization support on Mac.
+
 ## [1.1.0]
 ### Added
 - Support for Mac in the documentation.
@@ -18,5 +22,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0]
 
 * [unreleased] https://github.com/ggirelli/fish-conditions
-* [1.1.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.0.0
+* [1.1.1] https://github.com/ggirelli/fish-conditions/releases/tag/v1.1.1
+* [1.1.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.1.0
 * [1.0.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.0.0
