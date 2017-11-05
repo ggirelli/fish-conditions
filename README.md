@@ -9,7 +9,8 @@ This project contains code to select optimal uniFISH 1st and 2nd hybridization c
 
 1. Install OligoArrayAux if not already available. To check if the software is already available run `command -v melt.pl` or `melt.pl --version`. The first will give no output if the software is not installed, and the second will show the version of the currently installed software, if any. OligoArrayAux is available [here](http://unafold.rna.albany.edu/OligoArrayAux.php).
 2. Install GNU parallel if not already available. To check if the software is already available run `command -v parallel` or `parallel --version`. The first will give no output if the software is not installed, and the second will show the version of the currently installed software, if any. GNU parallel is available [here](https://www.gnu.org/software/parallel/).
-3. Download `fish-conditions` repository and submodules.
+3. Install datamash if not already available. To check if the software is already available run `command -v datamash` or `datamash --version`. The first will give no output if the software is not installed, and the second will show the version of the currently installed software, if any. Datamash is available [here](https://www.gnu.org/software/datamash/).
+4. Download `fish-conditions` repository and submodules.
 
 ```
 git clone https://github.com/ggirelli/fish-conditions
@@ -18,13 +19,13 @@ git submodule init
 git submodule update
 ```
 
-4. Test the installation with `./test/test.sh` from within the main code folder (e.g., `fish-conditions`).
+5. Test the installation with `./test/test.sh` from within the main code folder (e.g., `fish-conditions`).
 
 #### For Mac users
 
 Homebrew package manager is needed to install required software. To install homebrew, check out [this page](https://brew.sh/).
 
-If not yet available, please install `gnu-getopt`, `parallel` and `python3` as follows:
+If not yet available, please install `gnu-getopt`, `parallel`, `datamash` and `python3` as follows:
 
 ```
 brew install gnu-getopt
@@ -32,6 +33,8 @@ brew link --force gnu-getopt
 
 brew install parallel
 brew link --force parallel
+
+brew install datamash
 
 brew install python3
 ```

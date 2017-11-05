@@ -386,7 +386,7 @@ if $ask; then
   "
 
   # Ask confirmation
-  settings_confirm=`echo -e "$opt_string" | sed 's/^/ /'`
+  settings_confirm=`echo -e "$opt_string" | sed -E 's/^/ /'`
   settings_confirm="
    ##############################################
    #                                            #
@@ -616,7 +616,7 @@ col_id=()
 for s in ${col_seq[@]}; do col_id+=($(cat "$outdir/input.fa" | paste - - | \
   grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq)); done
 paste <(echo ${col_id[@]} | tr ' ' '\n') <(echo ${col_seq[@]} | tr ' ' '\n') | \
-  sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.fa"
+  sed -E 's/^/>/' | tr '\t' '\n' > "$outdir/color.fa"
 
 # Extract color-forward sequences
 colfor_seq=$(echo -e "$fain_seq" | awk \
@@ -626,7 +626,7 @@ for s in ${colfor_seq[@]}; do colfor_id+=($(cat "$outdir/input.fa" | \
   paste - - | grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq));
 done
 paste <(echo ${colfor_id[@]} | tr ' ' '\n') <(echo ${colfor_seq[@]} | \
-  tr ' ' '\n') | sed 's/^/>/' | tr '\t' '\n' > "$outdir/color.forward.fa"
+  tr ' ' '\n') | sed -E 's/^/>/' | tr '\t' '\n' > "$outdir/color.forward.fa"
 
 # Calculate hybridization of target portions -----------------------------------
 $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \

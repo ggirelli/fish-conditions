@@ -391,7 +391,7 @@ if $ask; then
   "
 
   # Ask confirmation
-  settings_confirm=`echo -e "$opt_string" | sed 's/^/ /'`
+  settings_confirm=`echo -e "$opt_string" | sed -E 's/^/ /'`
   settings_confirm="
    ##############################################
    #                                            #
