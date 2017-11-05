@@ -54,7 +54,7 @@ function run_single_condition1() {
 
     if [ ! -e "$cond_dir/targets.melt.$ct.FA"$fa1"p.tsv" ]; then exit 1; fi
 
-    if [ "true" == "$dplot" ]; then
+    if [ "true" == "$doplot" ]; then
         # Plot melting curves
         $moddir/oligo_melting/scripts/plot_melt_curves.R \
             -n "$cond_string : Targets" \
@@ -87,7 +87,7 @@ function run_single_condition1() {
         > $cond_dir/"second.melt.$ct.FA"$fa1"p.tsv" & pid=$!
     wait $pid
 
-    if [ "true" == "$dplot" ]; then
+    if [ "true" == "$doplot" ]; then
         # Plot secondary structure melting curves
         $moddir/oligo_melting/scripts/plot_melt_curves.R \
             -n "$cond_string : Secondary structure" \
