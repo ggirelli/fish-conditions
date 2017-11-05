@@ -18,7 +18,7 @@ function run_single_condition1() {
 
     # First hybridization analysis
     outdir=${1}
-    probe_name=$(echo "${2}" | sed -E "s/'//g")
+    probe_name=$(echo "${2}" | tr -d "'")
     fa1=${3}
     na1=${4}
     mg1=${5}
@@ -76,9 +76,9 @@ function run_single_condition1() {
     melt_id=$(cat "oligo_melt.tsv.tmp" | grep "Calculating")
     melt_id="oligo_name\n$melt_id"
     melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
-    paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
-        sed -E 's/^Calculating for//' | tr -d ' ' | \
-        paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
+    $(paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
+            sed -E 's/^Calculating for//' | tr -d ' ' | \
+            paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv")
     rm "oligo_melt.tsv.tmp"
 
     # FA correction
@@ -121,7 +121,7 @@ function run_single_condition2() {
 
     # First hybridization analysis
     outdir=${1}
-    probe_name=$(echo "${2}" | sed -E "s/'//g")
+    probe_name=$(echo "${2}" | tr -d "'")
     fa2=${3}
     na2=${4}
     mg2=${5}
@@ -177,7 +177,8 @@ function run_single_condition2() {
     wait $pid
 
     # Re-format data for easy manipulation
-    melt_id="oligo_name\n$(cat "colfor_melt.tsv.tmp" | grep "Calculating")"
+    melt_id=$(cat "colfor_melt.tsv.tmp" | grep "Calculating")
+    melt_id="oligo_name\n$melt_id"
     melt_data=$(cat "colfor_melt.tsv.tmp" | grep -v "Calculating")
     paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
         sed -E 's/^Calculating for//' | tr -d ' ' | \
