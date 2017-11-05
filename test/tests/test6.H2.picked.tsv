@@ -1,2 +1,2 @@
-probe		score	%FA	Na	Th	probe_conc
-Harmonized	2.010825959	25.00	0.3	37	0.000001
+probe	score	h%FA	Th	o%FA	To	Na	probe_conc
+Harmonized	2.010825959	25.00	37	25	37	0.3	0.000001

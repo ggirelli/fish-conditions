@@ -1,2 +1,2 @@
-probe		score	%FA	Na	Th	probe_conc
-probe	36.016484062	25.00	0.3	37	0.000001
+probe	score	h%FA	Th	o%FA	To	Na	probe_conc
+probe	36.016484062	25.00	37	25	37	0.3	0.000001
