@@ -52,6 +52,10 @@ Before starting the analysis, the setting are showed and, after pressing "**q**"
 
 * **Multi-probe harmonization**. Use `find_fish_conditions.sh -i input.fa -o output_dir/ --harmonize` to run the default parameters over a single probe fasta file.
 
+### First run
+
+Plot generation is implemented in R and requires the R packages `argparse` and `ggplot2`. The script automatically checks for the packages, and tries to automatically install them, providing help in manually installing them if the automatic installation fails.
+
 ## License
 
 ```
