@@ -22,6 +22,8 @@ git submodule update
 
 #### For Mac users
 
+Homebrew package manager is needed to install required software. To install homebrew, check out [this page](https://brew.sh/).
+
 If not yet available, please install `gnu-getopt` as follows:
 
 ```
@@ -29,7 +31,14 @@ brew install gnu-getopt
 brew link --force gnu-getopt
 ```
 
-To install homebrew, check it out [here](https://brew.sh/).
+Also, gnu-parallel (step 2 above) can be easily install with:
+
+```
+brew install parallel
+brew link --force parallel
+```
+
+Please, notice that `fish-conditions v1.1.0` has been tested only with `parallel v20161222`.
 
 ## Usage
 
