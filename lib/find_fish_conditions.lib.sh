@@ -180,9 +180,9 @@ function run_single_condition2() {
     melt_id=$(cat "colfor_melt.tsv.tmp" | grep "Calculating")
     melt_id="oligo_name\n$melt_id"
     melt_data=$(cat "colfor_melt.tsv.tmp" | grep -v "Calculating")
-    paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
-        sed -E 's/^Calculating for//' | tr -d ' ' | \
-        paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
+    $(paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
+            sed -E 's/^Calculating for//' | tr -d ' ' | \
+            paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv")
     rm "colfor_melt.tsv.tmp"
 
     # FA correction
