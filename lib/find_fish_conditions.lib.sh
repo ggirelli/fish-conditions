@@ -73,7 +73,8 @@ function run_single_condition1() {
     wait $pid
 
     # Re-format data for easy manipulation
-    melt_id="oligo_name\n$(cat "oligo_melt.tsv.tmp" | grep "Calculating")"
+    melt_id=$(cat "oligo_melt.tsv.tmp" | grep "Calculating")
+    melt_id="oligo_name\n$melt_id"
     melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
     paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
         sed -E 's/^Calculating for//' | tr -d ' ' | \
