@@ -76,7 +76,7 @@ function run_single_condition1() {
     melt_id="oligo_name\n$(cat "oligo_melt.tsv.tmp" | grep "Calculating")"
     melt_data=$(cat "oligo_melt.tsv.tmp" | grep -v "Calculating")
     paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
-        sed -E 's/^Calculating for//' | sed -E 's/ //g' | \
+        sed -E 's/^Calculating for//' | tr -d ' ' | \
         paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
     rm "oligo_melt.tsv.tmp"
 
@@ -179,7 +179,7 @@ function run_single_condition2() {
     melt_id="oligo_name\n$(cat "colfor_melt.tsv.tmp" | grep "Calculating")"
     melt_data=$(cat "colfor_melt.tsv.tmp" | grep -v "Calculating")
     paste <(echo -e "$melt_id") <(echo -e "$melt_data") | \
-        sed -E 's/^Calculating for//' | sed -E 's/ //g' | \
+        sed -E 's/^Calculating for//' | tr -d ' ' | \
         paste - <(echo -e "Seq\n$fain_seq") > "second.melt.$ct.tsv"
     rm "colfor_melt.tsv.tmp"
 
