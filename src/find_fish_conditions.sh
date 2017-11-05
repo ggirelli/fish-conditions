@@ -133,7 +133,7 @@ opt_long=$opt_long"na1:,mg1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,mg2:,"
 opt_long=$opt_long"harmonize,version,noplot"
 
 # Parse options
-TEMP=`getopt -o $opt_short --long $opt_long -n $opt_name -- "$@"`
+TEMP=`getopt -o $opt_short --longoptions $opt_long -n $opt_name -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
