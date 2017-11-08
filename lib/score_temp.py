@@ -25,7 +25,7 @@ from oligo_melting.lib.meltlib import *
 
 # PARAMETERS ===================================================================
 
-version = "1.1.1"
+version = "1.2.0"
 
 # Add script description
 parser = argparse.ArgumentParser(description = '''
