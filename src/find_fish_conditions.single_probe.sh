@@ -543,11 +543,11 @@ else # MULTI-THREAD #
 
   # Run in parallel
   export -f run_single_condition1
-  pout=$(parallel -kj $nthreads --env=run_single_condition1 \
-    run_single_condition1 ::: $outdir ::: \
-    "'$probe_name'" ::: $fa1 ::: $na1 ::: $mg1 ::: $probe_conc ::: $fa_mvalue ::: \
+  pout=$( parallel -kj $nthreads --env=run_single_condition1 \
+    run_single_condition1 ::: $outdir ::: "'$probe_name'" ::: \
+    $fa1 ::: $na1 ::: $mg1 ::: $probe_conc ::: $fa_mvalue ::: \
     $fa_mode ::: $dtype ::: $(seq $t1min $t1step $t1max) ::: "$moddir" ::: \
-    "$srcdir" ::: "$outdir/input.fa" ::: 1 ::: $doplot)
+    "$srcdir" ::: "$outdir/input.fa" ::: 1 ::: $doplot 2>/dev/null )
   
   # Reformat with temperature
   pout=$(paste <(seq $t1min $t1step $t1max) <(echo -e "$pout"))
@@ -611,24 +611,20 @@ if [ -d "$outdir/H2/" ]; then rm -r "$outdir/H2/"; fi
 mkdir -p "$outdir/H2/"
 
 # Extract color sequences
-col_seq=($(echo -e "$fain_seq" | awk \
+col_seq=$(echo -e "$fain_seq" | awk \
   -v s=${frag_start[0]} -v e=${frag_start[1]} \
-  '{ print substr($1, s, e) }' | sort | uniq))
-col_id=()
-for s in ${col_seq[@]}; do col_id+=($(cat "$outdir/input.fa" | paste - - | \
-  grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq)); done
-paste <(echo ${col_id[@]} | tr ' ' '\n') <(echo ${col_seq[@]} | tr ' ' '\n') | \
-  sed -E 's/^/>/' | tr '\t' '\n' > "$outdir/color.fa"
+  '{ print substr($1, s, e) }')
+paste <(echo -e "$fain_id" | sed -E "$probe_regexp") <(echo -e "$col_seq" \
+  | tr ' ' '\n') | sort | uniq | awk '{ print ">"$1"\n"$2 }' \
+  > "$outdir/color.fa"
 
 # Extract color-forward sequences
 colfor_seq=$(echo -e "$fain_seq" | awk \
   -v s=${frag_start[0]} -v e=${frag_start[2]} \
-  '{ print substr($1, s, e) }' | sort | uniq)
-for s in ${colfor_seq[@]}; do colfor_id+=($(cat "$outdir/input.fa" | \
-  paste - - | grep "$s" | cut -f1 | sed -E "$probe_regexp" | sort | uniq));
-done
-paste <(echo ${colfor_id[@]} | tr ' ' '\n') <(echo ${colfor_seq[@]} | \
-  tr ' ' '\n') | sed -E 's/^/>/' | tr '\t' '\n' > "$outdir/color.forward.fa"
+  '{ print substr($1, s, e) }')
+paste <(echo -e "$fain_id" | sed -E "$probe_regexp") <(echo -e "$colfor_seq" \
+  | tr ' ' '\n') | sort | uniq | awk '{ print ">"$1"\n"$2 }' \
+  > "$outdir/color.forward.fa"
 
 # Calculate hybridization of target portions -----------------------------------
 $moddir/oligo_melting/melt_duplex.py "$outdir/targets.fa" -FC \
@@ -718,11 +714,11 @@ else # MULTI-THREAD #
 
   # Run in parallel
   export -f run_single_condition2
-  pout=$(parallel -kj $nthreads --env=run_single_condition2 \
+  pout=$( parallel -kj $nthreads --env=run_single_condition2 \
     run_single_condition2 ::: $outdir ::: \
     "'$probe_name'" ::: $fa2 ::: $na2 ::: $mg2 ::: $probe_conc ::: $fa_mvalue \
     ::: $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" \
-    ::: "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot)
+    ::: "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot 2>/dev/null )
   
   # Reformat with temperature
   pout=$(paste <(seq $t2min $t2step $t2max) <(echo -e "$pout"))
