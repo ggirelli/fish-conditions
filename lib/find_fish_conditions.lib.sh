@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.1.0
+# Version: 1.2.0
 # Date: 20171030
 # Description: functions for FISH hybridization condition picking
 # 

@@ -22,7 +22,7 @@ export LC_ALL=C
 basedir="`dirname ${BASH_SOURCE}`"
 if [ "/" != ${basedir:0:1} ]; then basedir="$(pwd)/$basedir"; fi
 
-	version="v1.1.1"
+	version="v1.2.0"
 
 # RUN ==========================================================================
 
