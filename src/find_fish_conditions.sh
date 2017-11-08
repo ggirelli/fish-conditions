@@ -349,7 +349,7 @@ else
 fi
 
 # Make paths absolute
-if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/$fain_path; fi
+if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/"$fain_path"; fi
 if [ "/" != ${outdir:0:1} ]; then outdir=$(pwd)/$outdir/; fi
 
 if $ask; then
@@ -435,8 +435,8 @@ fi
 # Create output directory if missing
 mkdir -p "$outdir"
 
-# Copy input fasta to output directory
-cp $fain_path $outdir/input.fa
+# Copy input fasta to output directory and convert to proper format
+cat "$fain_path" | tr '\r' '\n' | tr -s '\n' > $outdir/input.fa
 
 # Identify probes --------------------------------------------------------------
 plist=($(cat "$outdir/input.fa" | grep ">" | \
