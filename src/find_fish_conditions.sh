@@ -482,8 +482,10 @@ else
     mkdir -p "$probe_dir"
 
     # Aggregate fasta sequences by header
+    tabchar=$'\t'
     fa_oneline=$(echo "$(cat $outdir/input.fa)" | tr "\n" "\t" | \
-        sed -E 's/\t([ATGCUatgcu]*)\t[^>]/\t\1/g' | tr "\t" "\n")
+        sed -E "s/[[:blank:]]([ATGCUatgcu]*)[[:blank:]]([^>])/$tabchar\1\2/g" \
+        | tr "\t" "\n")
 
     # Output single-probe fasta
     echo "$fa_oneline" | paste - - | grep "$probe_name" \
