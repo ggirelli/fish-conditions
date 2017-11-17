@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.2.0
+# Version: 2.0.0
 # Date: 20171030
 # Description: functions for FISH hybridization condition picking
 # 
@@ -105,7 +105,7 @@ function run_single_condition1() {
         "$cond_dir/second.melt.$ct.FA"$fa1"p.tsv")
 
     noligo=$(echo -e "$fain_seq" | wc -l)
-    nscore=$(bc <<< "scale=2; $cscore / $noligo")
+    nscore=$(bc <<< "scale=6; $cscore / $noligo")
 
     if [ 0 -eq $parallel ]; then
         echo -e " >>> Score: $cscore"
@@ -125,7 +125,7 @@ function run_single_condition2() {
     fa2=${3}
     na2=${4}
     mg2=${5}
-    probe_conc=${6}
+    uni_conc=${6}
     fa_mvalue=${7}
     fa_mode=${8}
     dtype=${9}
@@ -137,6 +137,7 @@ function run_single_condition2() {
     parallel=${14}
     t2=${15}
     doplot=${16}
+    probe_conc=${17}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -150,7 +151,7 @@ function run_single_condition2() {
 
     # Calculate hybridization of color portions -------------------------------
     $moddir/oligo_melting/melt_duplex.py "$outdir/color.fa" -FC \
-        -o $probe_conc -n $na2 -m $mg2 -f $fa2 --fa-mode $fa_mode -t $dtype \
+        -o $uni_conc -n $na2 -m $mg2 -f $fa2 --fa-mode $fa_mode -t $dtype \
         --fa-mvalue $fa_mvalue --t-curve 30 0.5 \
         --out-curve "$cond_dir/color.melt_curve.$ct.FA"$fa2"p.tsv" \
         > "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" & pid=$!
@@ -172,7 +173,7 @@ function run_single_condition2() {
     cp $outdir/color.forward.fa $cond_dir/color.forward.fa
 
     # Use OligoArrayAux for 2nd structure calculation
-    melt.pl -n DNA -t $ct -N $na2 -M $mg2 -C $probe_conc color.forward.fa \
+    melt.pl -n DNA -t $ct -N $na2 -M $mg2 -C $uni_conc color.forward.fa \
         >> "colfor_melt.tsv.tmp" & pid=$!
     wait $pid
 
@@ -202,15 +203,16 @@ function run_single_condition2() {
     fi
 
     # Score function -----------------------------------------------------------
-    cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $probe_conc -n $na2 \
+    cscore=$($moddir/score_temp.py -d "$dtype" -t $ct -o $uni_conc -n $na2 \
         -f $fa2  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
         --out-single "$cond_dir/oligo.scores.$ct.FA"$fa2"p.tsv" \
         --addit "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" \
+        --d-addit DNA:RNA --addit-conc $probe_conc \
         "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" \
         "$cond_dir/second.melt.$ct.FA"$fa2"p.tsv")
 
-    noligo=$(echo -e "$fain_seq" | wc -l)
-    nscore=$(bc <<< "scale=2; $cscore / $noligo")
+    noligo=$(cat $outdir/targets.fa | paste - - | wc -l)
+    nscore=$(bc <<< "scale=6; $cscore / $noligo")
 
     if [ 0 -eq $parallel ]; then
         echo -e " >>> Score: $cscore"

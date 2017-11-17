@@ -5,7 +5,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.2.0
+# Version: 2.0.0
 # Date: 20171027
 # Project: FISH probe condition picking
 # Description: Provide score for temperature condition.
@@ -25,7 +25,7 @@ from oligo_melting.lib.meltlib import *
 
 # PARAMETERS ===================================================================
 
-version = "1.2.0"
+version = "2.0.0"
 
 # Add script description
 parser = argparse.ArgumentParser(description = '''
@@ -80,6 +80,17 @@ parser.add_argument('--out-single', type = str, nargs = 1, metavar = 'outfile',
 parser.add_argument('--addit', type = str, nargs = 1, metavar = "addit_tsv",
     help = '''Path to additional target hybridization
     characterization tsv file.''', default = [None])
+parser.add_argument('--d-addit', type = str, nargs = 1,
+    help = '''Duplex type for additional target hybridization. Possible values:
+    DNA:DNA, RNA:RNA, DNA:RNA or RNA:DNA. The first nucleic acid type indicates
+    the provided sequence.''',
+    choices = ['DNA:DNA', 'RNA:RNA', 'RNA:DNA', 'DNA:RNA'],
+    default = ['DNA:DNA'])
+parser.add_argument('--addit-conc', metavar = "addit_conc",
+    type = float, nargs = 1,
+    help = '''Additional target concentration [M].
+    Default: 0.25e-6 M''',
+    default = [0.25e-6])
 
 # Add flags
 parser.add_argument('--version',
@@ -100,9 +111,11 @@ sin_path = args.second_tsv[0]
 ain_path = args.addit[0]
 temp = args.t[0]
 dtype = args.d[0]
+dtype_addit = args.d_addit[0]
 
 # Concentration
 oligo_conc = args.o[0]
+addit_conc = args.addit_conc[0]
 na_conc = args.naconc[0]
 mg_conc = args.mgconc[0]
 
@@ -114,11 +127,6 @@ fa_mval_s = args.fa_mvalue[0]
 # Output path
 outfile = args.out_single[0]
 doSingleOut = type(None) != type(outfile)
-
-# Prepare buffer pointer and write header
-if doSingleOut:
-    fout = open(outfile, 'w')
-    fout.write("name\tscore\n")
 
 # Additional checks ------------------------------------------------------------
 
@@ -243,10 +251,19 @@ def reparse_tsv_list(l, k, delim):
 t = reparse_tsv_list(read_tsv(tin_path), 'oligo_name', ',')
 s = reparse_tsv_list(read_tsv(sin_path), 'oligo_name', ',')
 
+# Check if additional targets were provided
 additional = False
 if type(None) != type(ain_path):
     additional = True
     a = reparse_tsv_list(read_tsv(ain_path), 'oligo_name', ',')
+
+# Prepare buffer pointer and write header
+if doSingleOut:
+    fout = open(outfile, 'w')
+    if additional:
+        fout.write("name\tflap_good\ttarget_adissoc\n")
+    else:
+        fout.write("name\tscore\n")
 
 # Save scores
 scores = []
@@ -289,7 +306,7 @@ for oligo_name in t.keys():
         acur = dict([(k, a[k]) for k in a.keys() if oligo_name in k])
         
         # Dissociate fraction vector
-        af = []
+        af = {}
 
         # Calculate fraction for each target
         for (k, v) in acur.items():
@@ -302,16 +319,17 @@ for oligo_name in t.keys():
             # Reset melting temperature to standard conditions
             ttemp = temp + 273.15
             ttemp = duMelt_ion_adj(ttemp, 1, 0, afgc, na_conc)
-            ttemp = duMelt_fa_adj(ttemp, adh, ads, aseq, oligo_conc,
-                0, fa_mode, mvalue, dtype, fa_conc)
+            ttemp = duMelt_fa_adj(ttemp, adh, ads, aseq, addit_conc,
+                0, fa_mode, mvalue, dtype_addit, fa_conc)
 
             # Calculate fraction
-            afcur = duMelt_curve(aseq, oligo_conc, na_conc, mg_conc,
-                fa_conc, fa_mode, mvalue, afgc, adh, ads, ttemp, 0, 0.1, dtype)
-            af.append(afcur[0][1])
-
+            afcur = duMelt_curve(aseq, addit_conc, na_conc, mg_conc,
+                fa_conc, fa_mode, mvalue, afgc, adh, ads, ttemp, 0, 0.1,
+                dtype_addit)
+            af[k]  = afcur[0][1]
+        
         # Calculate average dissociated target fractions
-        af = sum(af) / float(len(af))
+        #af = sum(af) / float(len(af))
 
     # Calculate score ----------------------------------------------------------
     
@@ -320,22 +338,30 @@ for oligo_name in t.keys():
     dissoc = tf             # Dissociated fraction
     hybrid = 1 - dissoc     # Hybridized fraction
 
-    if additional:             # Additional target
-        adissoc = af           # Dissociated fraction
-        ahybrid = 1 - adissoc  # Hybridized fraction
+    if additional:          # Additional target
+        score = 0
+        for (k, adissoc) in af.items():
+            ahybrid = 1 - adissoc  # Hybridized fraction
 
-    # Probability of good/bas oligos
-    good = unfold * hybrid     # Both unfolded AND hybridized
-    bad = (folded + dissoc) - folded * dissoc    # Folded OR dissociated
+            # Probability of good/bas oligos
+            good = unfold * hybrid     # Both unfolded AND hybridized
+            good *= ahybrid
+            #bad = (folded + dissoc) - folded * dissoc   # Folded OR dissociated
 
-    if additional:
-        good *= ahybrid
+            if doSingleOut:
+                fout.write("%s\t%.9f\t%.9f\n" % (k, unfold * hybrid, ahybrid))
 
-    # Score to be maximized
-    score = good
+            score += good
+    else:
+        # Probability of good/bas oligos
+        good = unfold * hybrid     # Both unfolded AND hybridized
+        #bad = (folded + dissoc) - folded * dissoc    # Folded OR dissociated
+        
+        # Score to be maximized
+        score = good
 
     # Output if needed ---------------------------------------------------------
-    if doSingleOut:
+    if not additional and doSingleOut:
         fout.write("%s\t%.9f\n" % (oligo_name, score))
 
     # Save lowest --------------------------------------------------------------

@@ -4,7 +4,7 @@
 # 
 # Author: Gabriele Girelli
 # Email: gigi.ga90@gmail.com
-# Version: 1.2.0
+# Version: 2.0.0
 # Date: 20171016
 # Project: FISH probe condition picking
 # Description: select optimal uniFISH 1st and 2nd hybridization conditions
@@ -18,13 +18,17 @@
 # ENV VAR ======================================================================
 
 export LC_ALL=C
-version="1.2.0"
+version="2.0.0"
 
 moddir="`dirname ${BASH_SOURCE}`/../lib/"
 if [ "/" != ${moddir:0:1} ]; then moddir="$(pwd)/$moddir"; fi
 srcdir="`dirname ${BASH_SOURCE}`/"
 if [ "/" != ${srcdir:0:1} ]; then srcdir="$(pwd)/$srcdir"; fi
 curdir="$(pwd)/"
+
+# DEPENDENCIES =================================================================
+
+source $moddir/common.lib.sh
 
 # PARAMS =======================================================================
 
@@ -134,6 +138,7 @@ opt_long=$opt_long"na1:,mg1:,t2:,t2step:,t2min:,t2max:,fa2:,na2:,mg2:,"
 opt_long=$opt_long"harmonize,version,noplot"
 
 # Parse options
+CMD="$0 $@"
 TEMP=`getopt -o $opt_short --longoptions $opt_long -n $opt_name -- "$@"`
 eval set -- "$TEMP"
 while true ; do
@@ -352,88 +357,59 @@ fi
 if [ "/" != ${fain_path:0:1} ]; then fain_path=$(pwd)/"$fain_path"; fi
 if [ "/" != ${outdir:0:1} ]; then outdir=$(pwd)/$outdir/; fi
 
-if $ask; then
-  # Print options
-  opt_string="
-  #------------ GENERAL ------------#
+# Print options
+opt_string="
+#------------ GENERAL ------------#
 
-     Probe pattern : $probe_regexp
-       Input fasta : $fain_path
-     Output folder : $outdir
-           Verbose : $verbose
-     FA correction : $fa_mode
-         Structure : $struct
-     Expected size : $exp_size
-           Threads : $nthreads
-         Harmonize : $harmonize
-              Plot : $doplot
+   Probe pattern : $probe_regexp
+     Input fasta : $fain_path
+   Output folder : $outdir
+         Verbose : $verbose
+   FA correction : $fa_mode
+       Structure : $struct
+   Expected size : $exp_size
+         Threads : $nthreads
+       Harmonize : $harmonize
+            Plot : $doplot
 
-  #------- 1st HYBRIDIZATION -------#
+#------- 1st HYBRIDIZATION -------#
 
-           [probe] : $probe_conc M
-       Temperature : $t1 degC
-        Temp. step : $t1step degC
-       Temp. range : $t1min - $t1max degC
-              [FA] : $fa1 %
-             [Na+] : $na1 M
-            [Mg2+] : $mg1 M
+         [probe] : $probe_conc M
+     Temperature : $t1 degC
+      Temp. step : $t1step degC
+     Temp. range : $t1min - $t1max degC
+            [FA] : $fa1 %
+           [Na+] : $na1 M
+          [Mg2+] : $mg1 M
 
-  #------- 2nd HYBRIDIZATION -------#
+#------- 2nd HYBRIDIZATION -------#
 
-             [uni] : $uni_conc M
-       Temperature : $t2 degC
-        Temp. step : $t2step degC
-       Temp. range : $t2min - $t2max degC
-              [FA] : $fa2 %
-             [Na+] : $na2 M
-            [Mg2+] : $mg2 M
+           [uni] : $uni_conc M
+     Temperature : $t2 degC
+      Temp. step : $t2step degC
+     Temp. range : $t2min - $t2max degC
+            [FA] : $fa2 %
+           [Na+] : $na2 M
+          [Mg2+] : $mg2 M
 
-  #---------------------------------#
-  "
+#---------------------------------#
+"
+# Ask confirmation
+if $ask; then confirm_settings "$opt_string"; fi
 
-  # Ask confirmation
-  settings_confirm=`echo -e "$opt_string" | sed -E 's/^/ /'`
-  settings_confirm="
-   ##############################################
-   #                                            #
-   #  PLEASE, DOUBLE CHECK THE SETTINGS BELOW   #
-   # (press 'q' to continue when you are ready) #
-   #                                            #
-   ##############################################
-
-  $settings_confirm"
-
-  echo -e "$settings_confirm" | less
-
-  msg="$msg\nRun the analysis?\nYes (y), Abort (a), Show again (s)"
-  clear; echo -e $msg; read -e ans
-
-  end=0
-  while [[ 0 -eq $end ]]; do
-    if [[ -z $ans ]]; then
-      echo -e $msg
-      read -e ans
-    elif [[ 'a' == $ans ]]; then
-      end=1
-      echo "Aborted."
-      exit 1
-    elif [[ 'y' == $ans ]]; then
-      echo -e "\n"
-      end=1
-    elif [[ 's' == $ans ]]; then
-      echo -e "$settings_confirm" | less
-      clear; echo -e $msg; read -e ans
-    else
-      echo -e $msg
-      read -e ans
-    fi
-  done
-fi
+# Check output folder
+if $ask; then confirm_overwrite $outdir; fi
 
 # RUN ==========================================================================
 
 # Create output directory if missing
 mkdir -p "$outdir"
+
+# Output settings
+echo -e "$opt_string" > $outdir/settings.txt
+
+# Save command line
+echo -e "$CMD" > "$outdir/CMD"
 
 # Copy input fasta to output directory and convert to proper format
 cat "$fain_path" | tr '\r' '\n' | tr -s '\n' > $outdir/input.fa
@@ -448,18 +424,6 @@ if (( $(bc <<< "0 == ${#plist[@]}") )); then exit 0; fi
 
 if $harmonize; then
   # HARMONIZE PROBES MODE #
-  
-  # Save command line
-  echo -e "$srcdir/find_fish_conditions.single_probe.sh -y --dtype '$dtype' \
-    --famode '$fa_mode' --mvalue '$fa_mvalue' \
-    --t1 '$t1' --t1step '$t1step' --t1min '$t1min' --t1max '$t1max' \
-    --fa1 '$fa1' --na1 '$na1' --mg1 '$mg1' \
-    --t2 '$t2' --t2step '$t2step' --t2min '$t2min' --t2max '$t2max' \
-    --fa2 '$fa2' --na2 '$na2' --mg2 '$mg2' \
-    -p '$probe_conc' -u '$uni_conc' -s '$struct' -n 'Harmonized' \
-    -t '$nthreads' -r '$probe_regexp' $setplot \
-    -i '$outdir/input.fa' -o '$outdir'
-  " > "$outdir/CMD"
 
   # Run single probe script
   $srcdir/find_fish_conditions.single_probe.sh -y --dtype "$dtype" \

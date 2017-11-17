@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [unreleased]
 - ...
 
+## [2.0.0]
+### Fixed
+- Updated oligo_melting library to version with fixed thermodynamic table labeling issue.
+- Temperature score function now takes into account different interaction type for main target and additional ones.
+- Temperature score function now allows different concentration of additional targets.
+- Temperature score function now takes into account different probe sizes (in oligo).
+
+### Changed
+- Moved settings confirmation code to common library.
+- Auxiliary output moved to `aux` folder.
+- Single picked table, for convenience.
+- Single temperature condition score table, fore convenience.
+- Increased the number of decimals for normalized score.
+
+### Added
+- Plot score distributions.
+- Saving command line also for multi-probe script.
+- Confirm output directory overwrite before running.
+- Now logging the best normalized score.
+
 ## [1.2.0]
 ### Fixed
 - MacOS support for sed versions.
@@ -30,6 +50,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0]
 
 * [unreleased] https://github.com/ggirelli/fish-conditions
+* [2.0.0] https://github.com/ggirelli/fish-conditions/releases/tag/v2.0.0
 * [1.2.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.2.0
 * [1.1.1] https://github.com/ggirelli/fish-conditions/releases/tag/v1.1.1
 * [1.1.0] https://github.com/ggirelli/fish-conditions/releases/tag/v1.1.0

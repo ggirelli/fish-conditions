@@ -22,7 +22,7 @@ export LC_ALL=C
 basedir="`dirname ${BASH_SOURCE}`"
 if [ "/" != ${basedir:0:1} ]; then basedir="$(pwd)/$basedir"; fi
 
-	version="v1.2.0"
+	version="v2.0.0"
 
 # RUN ==========================================================================
 
@@ -73,15 +73,8 @@ test4=$($basedir/../src/find_fish_conditions.single_probe.sh -y \
 	--t1min 37 --t2min 37 --t1max 37 --t2max 37 \
 	-i "$basedir/test.fa" -o "$basedir/out_test4/" --noplot)
 
-test4std=$(cat $basedir/tests/test4.H1.picked.tsv)
-test4=$(cat $basedir/out_test4/H1.picked.tsv)
-if [ "$test4std" != "$test4" ]; then
-	echo "Unexpected output from single-probe script. Broken installation."
-	exit 1
-fi
-
-test4std=$(cat $basedir/tests/test4.H2.picked.tsv)
-test4=$(cat $basedir/out_test4/H2.picked.tsv)
+test4std=$(cat $basedir/tests/test4.picked.tsv)
+test4=$(cat $basedir/out_test4/picked.tsv)
 if [ "$test4std" != "$test4" ]; then
 	echo "Unexpected output from single-probe script. Broken installation."
 	exit 1
@@ -99,15 +92,8 @@ test5=$($basedir/../src/find_fish_conditions.sh -y \
 	-r "s/^>.*(C[0-9]*:[^:]*):.*$/\\1/" --noplot \
 	-i "$basedir/test.harmonize.fa" -o "$basedir/out_test5/")
 
-test5std=$(cat $basedir/tests/test5.H1.picked.tsv)
-test5=$(cat $basedir/out_test5/single_probes/C1:AFDN_cds/H1.picked.tsv)
-if [ "$test5std" != "$test5" ]; then
-	echo "Unexpected output from multi-probe script. Broken installation."
-	exit 1
-fi
-
-test5std=$(cat $basedir/tests/test5.H2.picked.tsv)
-test5=$(cat $basedir/out_test5/single_probes/C1:AFDN_cds/H2.picked.tsv)
+test5std=$(cat $basedir/tests/test5.picked.tsv)
+test5=$(cat $basedir/out_test5/single_probes/C1:AFDN_cds/picked.tsv)
 if [ "$test5std" != "$test5" ]; then
 	echo "Unexpected output from multi-probe script. Broken installation."
 	exit 1
@@ -125,17 +111,8 @@ test6=$($basedir/../src/find_fish_conditions.sh -y --harmonize \
 	-r "s/^>.*(C[0-9]*:[^:]*):.*$/\\1/" --noplot \
 	-i "$basedir/test.harmonize.fa" -o "$basedir/out_test6/")
 
-test6std=$(cat $basedir/tests/test6.H1.picked.tsv)
-test6=$(cat $basedir/out_test6//H1.picked.tsv)
-if [ "$test6std" != "$test6" ]; then
-	msg="Unexpected output from probe harmonization script. "
-	msg=$msg"Broken installation."
-	echo -e "$msg"
-	exit 1
-fi
-
-test6std=$(cat $basedir/tests/test6.H2.picked.tsv)
-test6=$(cat $basedir/out_test6//H2.picked.tsv)
+test6std=$(cat $basedir/tests/test6.picked.tsv)
+test6=$(cat $basedir/out_test6/picked.tsv)
 if [ "$test6std" != "$test6" ]; then
 	msg="Unexpected output from probe harmonization script. "
 	msg=$msg"Broken installation."
