@@ -365,6 +365,7 @@ opt_string="
 
 #------- 1st HYBRIDIZATION -------#
 
+            Type : $dtype
          [probe] : $probe_conc M
      Temperature : $t1 degC
       Temp. step : $t1step degC
@@ -375,6 +376,7 @@ opt_string="
 
 #------- 2nd HYBRIDIZATION -------#
 
+            Type : DNA:DNA
            [uni] : $uni_conc M
      Temperature : $t2 degC
       Temp. step : $t2step degC
@@ -628,7 +630,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   echo -e "Checking default temperature"
   run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
     $fa_mvalue $fa_mode "DNA:DNA" $t2 "$moddir" "$srcdir" \
-    "$outdir/color.forward.fa" 0 $t2 $doplot $probe_conc
+    "$outdir/color.forward.fa" 0 $t2 $doplot $probe_conc $dtype
   echo -e "$ct\t$cscore\t$nscore\tH2" >> $fname
 
   # Default best values
@@ -642,7 +644,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   while
     run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
       $fa_mvalue $fa_mode "DNA:DNA" $ct \
-      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot $probe_conc
+      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot $probe_conc $dtype
     (( $(bc <<< "$ct >= $t2min" ) ));
     #(( $(bc <<< "$cscore >= $best_score") ));
   do
@@ -662,7 +664,7 @@ if [ 1 == $nthreads ]; then # SINGLE THREAD #
   while
     run_single_condition2 $outdir $probe_name $fa2 $na2 $mg2 $uni_conc \
       $fa_mvalue $fa_mode "DNA:DNA" $ct \
-      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot $probe_conc
+      "$moddir" "$srcdir" "$outdir/color.fa" 0 $t2 $doplot $probe_conc $dtype
     (( $(bc <<< "$ct <= $t2max" ) ));
     #(( $(bc <<< "$cscore >= $best_score") ));
   do
@@ -685,10 +687,10 @@ else # MULTI-THREAD #
   export -f run_single_condition2
   pout=$( parallel -kj $nthreads --env=run_single_condition2 \
     run_single_condition2 ::: $outdir ::: \
-    "'$probe_name'" ::: $fa2 ::: $na2 ::: $mg2 ::: $probe_conc ::: $fa_mvalue \
+    "'$probe_name'" ::: $fa2 ::: $na2 ::: $mg2 ::: $uni_conc ::: $fa_mvalue \
     ::: $fa_mode ::: "DNA:DNA" ::: $(seq $t2min $t2step $t2max) ::: "$moddir" \
     ::: "$srcdir" ::: "$outdir/color.fa" ::: 1 ::: $t2 ::: $doplot \
-    ::: $probe_conc 2>/dev/null )
+    ::: $probe_conc ::: $dtype 2>/dev/null )
   
   # Reformat with temperature
   pout=$(paste <(seq $t2min $t2step $t2max) \

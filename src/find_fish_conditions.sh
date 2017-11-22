@@ -374,6 +374,7 @@ opt_string="
 
 #------- 1st HYBRIDIZATION -------#
 
+            Type : $dtype
          [probe] : $probe_conc M
      Temperature : $t1 degC
       Temp. step : $t1step degC
@@ -384,6 +385,7 @@ opt_string="
 
 #------- 2nd HYBRIDIZATION -------#
 
+            Type : DNA:DNA
            [uni] : $uni_conc M
      Temperature : $t2 degC
       Temp. step : $t2step degC

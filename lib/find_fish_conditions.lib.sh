@@ -138,6 +138,7 @@ function run_single_condition2() {
     t2=${15}
     doplot=${16}
     probe_conc=${17}
+    addit_type=${18}
 
     # Log current conditions
     if [ 0 -eq $parallel ]; then
@@ -207,7 +208,7 @@ function run_single_condition2() {
         -f $fa2  --fa-mode "$fa_mode" --fa-mvalue "$fa_mvalue" \
         --out-single "$cond_dir/oligo.scores.$ct.FA"$fa2"p.tsv" \
         --addit "$outdir/H2/targets.melt.$t2.FA"$fa2"p.tsv" \
-        --d-addit DNA:RNA --addit-conc $probe_conc \
+        --d-addit $addit_type --addit-conc $probe_conc \
         "$cond_dir/color.melt.$ct.FA"$fa2"p.tsv" \
         "$cond_dir/second.melt.$ct.FA"$fa2"p.tsv")
 

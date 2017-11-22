@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
-- ...
+### Fixed
+- First hybridization duplex type now passed to 2nd hybridization instead of being fixed to DNA:RNA.
 
 ## [2.0.0]
 ### Fixed
