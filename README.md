@@ -1,7 +1,7 @@
-fish-conditions
+mud-fish
 ===
 
-This project contains code to select optimal uniFISH 1st and 2nd hybridization conditions for probes composed of oligonucleotides with the following structure: color sequence (C), forward sequence (F), target sequence (T), and reverse sequence (R), from 5' to 3'. Below, I will refer to the longest flap comprising R and C as L (i.e., L=R+C) and to the whole oligo as O (i.e., O=C+F+T+R).
+The **M**elting, **U**nfolding and **D**enaturants in **FISH** (or MUD-FISH) project contains code to select optimal uniFISH 1st and 2nd hybridization conditions for probes composed of oligonucleotides with the following structure: color sequence (C), forward sequence (F), target sequence (T), and reverse sequence (R), from 5' to 3'. Below, I will refer to the longest flap comprising R and C as L (i.e., L=R+C) and to the whole oligo as O (i.e., O=C+F+T+R).
 
 <img src="https://github.com/ggirelli/fish-conditions/blob/master/images/fish.png" alt="octocat" />
 
