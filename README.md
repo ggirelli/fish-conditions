@@ -1,3 +1,5 @@
+**NOTE: the code contained in this repository is just a prototype. It has not been checked for consistency, correctness, or tested against experimental data.**
+
 mud-fish
 ===
 
